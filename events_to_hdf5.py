@@ -51,6 +51,8 @@ filenames = fs.multiglob(args.glob, recurse=True)
 
 chs = [('W_SIWIM_N1', 'S1'), ('W_HBM_N1', 'H1'), ('W_HBM_N2', 'H2'), ('W_SIWIM_DEW', 'SD'), ('W_SIWIM_N2', 'S2')]
 lines = []
+MP = 0
+light = 0
 
 try:
     __IPYTHON__
@@ -66,9 +68,11 @@ for filename in filenames:
     
     # Eliminate MPs, low weights and possibly wrong configurations
     if len(event.weighed_vehicles) != 1:
+        MP += 1
         continue
     vehicle = event.weighed_vehicles[0]
     if vehicle.gvw() < args.mingvw*9.81:
+        light += 1
         continue
     
     # Process
@@ -101,3 +105,5 @@ df.columns = columns
 df.set_index('ts', inplace=True)
 
 df.to_hdf(f"{os.path.splitext(fs.fullname(args.glob.replace('*', 'X')))[0]}.hdf5", 'data')
+
+print(f"Skipped {MP} MP events and {light} events with light vehicles")
