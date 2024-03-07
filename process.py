@@ -100,7 +100,7 @@ for rv in rvs[:10]:
 
 #%% Get PNG and event and plot
 
-photo_id = 86977
+photo_id = 181417
 
 rv = [x for x in rvs if x['photo_id'] == photo_id][0]
 
@@ -112,9 +112,10 @@ image = mpimg.imread(pngname)
 # plt.imshow(image)
 # plt.show()
 
-fs = FS(args.siwim_data_root, args.siwim_site, args.siwim_rpindex, args.siwim_module)
+fs_vehicle_fad = FS(args.siwim_data_root, args.siwim_site, args.siwim_rpindex, args.siwim_module)
+fs_cf = FS(r"t:\sites\original", args.siwim_site, 1, "cf")
 
-event_name = eventpath(fs, rv)
+event_name = eventpath(fs_vehicle_fad, rv)
 print(os.path.basename(event_name))
 event = read_file(event_name)
 
@@ -167,3 +168,5 @@ plt.tight_layout()
 plt.show()
 
 print(rv['vehicle_timestamp'])
+event = read_file(eventpath(fs_cf, rv))
+event.write_file(os.path.join(SCRIPT_DIR, "tmp.event"))
