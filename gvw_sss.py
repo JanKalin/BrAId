@@ -20,7 +20,7 @@ from swm.vehicle import Vehicle
 
 #%% Construct a GVW vs SSS DataFrame
 
-vehicles = Vehicle.from_txt_files(os.path.join(SCRIPT_DIR, "2013.nswd"), glob=True)
+vehicles = Vehicle.from_txt_files(os.path.join(SCRIPT_DIR, "201?.nswd"), glob=True)
 df = pd.DataFrame([[x.lane, x.gvw()/9.81, x.sum_of_signals[0], x.sum_of_signals[1]] for x in vehicles if
                    (len(x.sum_of_signals) == 2 and x.gvw()/9.81 > 3.5 and x.gvw()/9.81 < 100)],
                   columns=['lane', 'gvw', 'sss1', 'sss2'])
