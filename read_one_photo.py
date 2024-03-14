@@ -45,13 +45,13 @@ except:
 
 #%% Read files
 
-with open(os.path.join(SCRIPT_DIR, "recognized_vehicles.json")) as f:
+with open(os.path.join(SCRIPT_DIR, 'data', "recognized_vehicles.json")) as f:
     rvs = json.load(f)
 for rv in rvs:
     rv['vehicle_timestamp'] = datetime.datetime.fromtimestamp(rv['vehicle_timestamp'])
     rv['photo_timestamp'] = datetime.datetime.fromtimestamp(rv['photo_timestamp'])
     
-with open(os.path.join(SCRIPT_DIR, "v2e.json")) as f:
+with open(os.path.join(SCRIPT_DIR, 'data', "vehicle2event.json")) as f:
     v2e = json.load(f)
     
 def pngpath(root, v):

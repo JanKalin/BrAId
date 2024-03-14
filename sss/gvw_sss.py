@@ -14,7 +14,7 @@ import pandas as pd
 from scipy import stats
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(SCRIPT_DIR)), 'siwim-pi'))
+sys.path.append(os.path.join(os.path.dirname(SCRIPT_DIR), '..', ',,', '..', 'siwim-pi'))
 
 from swm.vehicle import Vehicle
 
