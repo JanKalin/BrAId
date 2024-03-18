@@ -43,7 +43,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 #%% Parse args
 
-parser = argparse.ArgumentParser(description="Interactively mark braid photos", fromfile_prefix_chars='@', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser = argparse.ArgumentParser(description="Interactively mark BrAId photos", fromfile_prefix_chars='@', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--photo_root", help="Root for photos", default=r"B:\grouped_photos")
 parser.add_argument("--siwim_site", help="SiWIM site", default=r"AC_Sentvid_2012_2")
 parser.add_argument("--siwim_admp_data_root", help="Root for SiWIM ADMP data", default=r"S:\sites\original")
@@ -75,12 +75,13 @@ def eventpath(fs, v):
 
 #%% Data functions
 
-def load_metadata(rv):
+def load_metadata(rv, exists=False):
     try:
         with h5py.File(os.path.join(args.data_dir, "metadata.hdf"), 'r') as f:
-            return json.loads(f[f"{rv['vehicle_type']}/{rv['axle_groups']}/{rv['photo_id']}"].asstr()[()])
+            result = json.loads(f[f"{rv['vehicle_type']}/{rv['axle_groups']}/{rv['photo_id']}"].asstr()[()])
+            return True if exists else result
     except:
-        return {'seen_by': [], 'changed_by': []}
+        return False if exists else {'seen_by': [], 'changed_by': []}
     
 def save_metadata(rv, metadata):
     with h5py.File(os.path.join(args.data_dir, "metadata.hdf"), 'a') as f:
@@ -103,10 +104,10 @@ def count_vehicles(rvsd):
 print("Loading recognized_vehicles.json, ", end='')
 sys.stdout.flush()
 with open(os.path.join(args.data_dir, "recognized_vehicles.json")) as f:
-    rvsl = json.load(f)
+    rvs_loaded = json.load(f)
 print("done.")
     
-for rv in rvsl:
+for rv in rvs_loaded:
     rv['vehicle_timestamp'] = datetime.datetime.fromtimestamp(rv['vehicle_timestamp'])
     rv['photo_timestamp'] = datetime.datetime.fromtimestamp(rv['photo_timestamp'])
 
@@ -116,12 +117,12 @@ with open(os.path.join(args.data_dir, "vehicle2event.json")) as f:
     v2e = json.load(f)
 print("done.")
 
-rvsd = {'bus': {}, 'truck': {}}
-for rv in rvsl:
+rvs_lists = {'bus': {}, 'truck': {}}
+for rv in rvs_loaded:
     try:
-        rvsd[rv['vehicle_type']][rv['axle_groups']].append(rv)
+        rvs_lists[rv['vehicle_type']][rv['axle_groups']].append(rv)
     except:
-        rvsd[rv['vehicle_type']][rv['axle_groups']] = [rv]
+        rvs_lists[rv['vehicle_type']][rv['axle_groups']] = [rv]
 
     
 #%% Main window class and helper functions
@@ -136,7 +137,7 @@ class Window(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         self.setupUi(self)
         self.setWindowTitle(f"{self.windowTitle()}, user '{getpass.getuser()}'")
-        self.connectSignalsSlots()
+        self.connect_signals_slots()
 
         self.figureCanvasADMP = FigureCanvas(Figure(figsize=(5.5, 2)))
         self.layoutGraph.addWidget(self.figureCanvasADMP)
@@ -145,13 +146,16 @@ class Window(QMainWindow, Ui_MainWindow):
         self.locator = mdates.AutoDateLocator()
         self.formatter = mdates.ConciseDateFormatter(self.locator, offset_formats=['', '%Y', '%Y-%m', '%Y-%m-%d', '%Y-%m-%d', '%Y-%m-%d %H:%M'])
         
+        self.lblLastSeen.setText("")
+        self.lblLastChanged.setText("")
+        self.updating_metadata = False
 
-    def load_data(self, rvsd):
-        self.rvsd = rvsd
-        self.vehicle_count = count_vehicles(self.rvsd)
-        self.load_cboxAxleGroups()        
+    def load_data(self, rvs_lists):
+        self.rvs_lists = rvs_lists
+        self.vehicle_count = count_vehicles(self.rvs_lists)
+        self.load_cboxAxleGroups()  
 
-    def connectSignalsSlots(self):
+    def connect_signals_slots(self):
         self.actionAbout.triggered.connect(self.about)
         self.actionShortcuts.triggered.connect(self.shortcuts)
         self.actionPictureNext.triggered.connect(self.next_photo)
@@ -160,10 +164,18 @@ class Window(QMainWindow, Ui_MainWindow):
 
         self.radioSelectBusses.toggled.connect(self.load_cboxAxleGroups)
         self.cboxAxleGroups.currentIndexChanged.connect(self.setup_scrollbarPhoto)
+        self.chkOnlyUnseen.toggled.connect(self.setup_scrollbarPhoto)
         self.scrollbarPhoto.valueChanged.connect(self.show_photo)
         self.chkAutoLoadADMPs.toggled.connect(self.set_chkAutoLoadADMPs)
         self.btnLoadEvent.clicked.connect(self.load_event)
-
+        
+        self.actionIsABus.triggered.connect(lambda: self.set_vehicle_type('bus'))
+        self.radioIsABus.toggled.connect(lambda: self.set_vehicle_type('bus'))
+        self.actionIsATruck.triggered.connect(lambda: self.set_vehicle_type('truck'))
+        self.radioIsATruck.toggled.connect(lambda: self.set_vehicle_type('truck'))
+        self.edtGroups.editingFinished.connect(self.set_groups)
+        self.edtRaised.editingFinished.connect(self.set_raised)
+        
     def about(self):
         QMessageBox.about(
             self,
@@ -182,6 +194,8 @@ class Window(QMainWindow, Ui_MainWindow):
             <tr><td><kbd>&lt;Up-Arrow&gt;</kbd></td><td>Previous photo</td></tr>
             <tr><td><kbd>&lt;Down-Arrow&gt;</kbd></td><td>Next photo</td></tr>
             <tr><td><kbd>&lt;Alt&gt;-D</kbd></td><td>Load ADMPs</td></tr>
+            <tr><td><kbd>&lt;Alt&gt;-B</kbd></td><td>Vehicle is a bus</td></tr>
+            <tr><td><kbd>&lt;Alt&gt;-T</kbd></td><td>Vehicle is a truck</td></tr>
             """
         )
          
@@ -201,7 +215,7 @@ class Window(QMainWindow, Ui_MainWindow):
         if not self.scrollbarPhoto.maximum():
             return None
         try:
-            return self.rvsd[self.vehicle_type()][self.axle_groups()][self.scrollbarPhoto.sliderPosition()]
+            return self.selected[self.scrollbarPhoto.sliderPosition()]
         except:
             return None
         
@@ -215,11 +229,18 @@ class Window(QMainWindow, Ui_MainWindow):
     def setup_scrollbarPhoto(self):
         """Sets up scroll bar for photo selection and shows the first photo"""
         try:
-            self.scrollbarPhoto.setMaximum(len(self.rvsd[self.vehicle_type()][self.axle_groups()]) - 1)
-            self.scrollbarPhoto.setValue(0)
-        except:
-            self.scrollbarPhoto.setMaximum(0)
-            self.scrollbarPhoto.setValue(0)
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+            try:
+                self.selected = [x for x in self.rvs_lists[self.vehicle_type()][self.axle_groups()]
+                                 if not self.chkOnlyUnseen.isChecked() or not load_metadata(x, exists=True)]
+                self.scrollbarPhoto.setMaximum(len(self.selected) - 1)
+                self.scrollbarPhoto.setValue(0)
+            except:
+                raise
+                self.scrollbarPhoto.setMaximum(0)
+                self.scrollbarPhoto.setValue(0)
+        finally:
+            QApplication.restoreOverrideCursor()
         self.show_photo()
 
     def previous_photo(self):
@@ -238,29 +259,88 @@ class Window(QMainWindow, Ui_MainWindow):
                 self.lblPhoto.clear()
                 self.rv = None
                 self.metadata = None
+                self.groupboxLabel.setTitle("Label vehicle 0/0")
             else:
-                self.rv = self.rvsd[self.vehicle_type()][self.axle_groups()][self.scrollbarPhoto.sliderPosition()]
+                self.rv = self.selected[self.scrollbarPhoto.sliderPosition()]
                 filename = pngpath(args.photo_root, self.rv)
                 if not os.path.isfile(filename):
                     print(f"Cannot load file {filename}")
                     beep()
-                    self.metadata = {}
+                    self.metadata = None
                     return
                 pixmap = QPixmap(filename)
                 self.lblPhoto.setPixmap(pixmap)
                 self.metadata = load_metadata(self.rv)
-                self.metadata['seen_by'].append((datetime.datetime.now().timestamp(),getpass.getuser()))
+                self.metadata['seen_by'].append((datetime.datetime.now().timestamp(), getpass.getuser()))
                 save_metadata(self.rv, self.metadata)
-                self.new_metadata = self.metadata.copy()
-                self.groupboxLabel.setTitle(f"{self.scrollbarPhoto.sliderPosition() + 1}/{self.scrollbarPhoto.maximum() + 1}")
+                self.show_metadata()
+                self.groupboxLabel.setTitle(f"Label vehicle {self.scrollbarPhoto.sliderPosition() + 1}/{self.scrollbarPhoto.maximum() + 1}"
+                                            + (f" ({len(rvs_lists[self.vehicle_type()][self.axle_groups()]) - len(self.selected)} already seen)" if self.chkOnlyUnseen.isChecked() else "")
+                                            + f", photo id: {self.rv['photo_id']}")
             self.load_ADMPs(force_clear=not self.chkAutoLoadADMPs.isChecked())
+            self.show_metadata()
+        except:
+            raise
         finally:
             QApplication.restoreOverrideCursor()
     
+    def show_metadata(self):
+        """Shows metadata in the 'Label' group box
+        First sets self.updating_metadata = True to prevent any loops and stuff
+        """
+        
+        def frmt(t):
+            return t.strftime('on %a, %d. %b %Y at %H:%M:%S')
+        
+        try:
+            self.updating_metadata = True
+            if self.metadata == None:
+                self.lblLastSeen.setText("")
+                self.lblLastChanged.setText("")
+            else:
+                # Audit log
+                try:
+                    at = frmt(datetime.datetime.fromtimestamp(self.metadata['seen_by'][-2][0]))
+                    by = self.metadata['seen_by'][-2][1]
+                except (KeyError, IndexError):
+                    at = 'now'
+                    by = getpass.getuser()
+                self.lblLastSeen.setText(f"Last seen {at} by '{by}'")
+                try:
+                    at = frmt(datetime.datetime.fromtimestamp(self.metadata['changed_by'][-1][0]))
+                    by = self.metadata['changed_by'][-1][1]
+                    self.lblLastChanged.setText(f"Last changed {at} by '{by}'")
+                except (KeyError, IndexError):
+                    self.lblLastChanged.setText("Unchanged")
+                
+                #  Vehicle type
+                try:
+                    vehicle_type = self.metadata['vehicle_type']
+                except:
+                    vehicle_type = self.rv['vehicle_type']
+                if vehicle_type == 'bus' and not self.radioIsABus.isChecked():
+                    self.radioIsABus.setChecked(True)
+                elif vehicle_type == 'truck' and not self.radioIsATruck.isChecked():
+                    self.radioIsATruck.setChecked(True)
+                    
+                # Axle groups and raised
+                try:
+                    self.edtGroups.setText(self.metadata['axle_groups'])
+                except:
+                    self.edtGroups.setText(self.rv['axle_groups'])
+                try:
+                    self.edtRaised.setText(self.metadata['raised_axles'])
+                except:
+                    self.edtRaised.setText("")
+        finally:
+            self.updating_metadata = False
+            
     def set_chkAutoLoadADMPs(self):
+        """Perhaps clears ADMPs"""
         self.load_ADMPs(force_clear=not self.chkAutoLoadADMPs.isChecked())
             
     def load_ADMPs(self, force_clear=False):
+        """Load ADMPs from event"""
         self.fig.clf()
         try:
             plot = self.figureCanvasADMP.figure.subplots(nrows=2, sharex='col')
@@ -285,10 +365,50 @@ class Window(QMainWindow, Ui_MainWindow):
             QApplication.restoreOverrideCursor()
             
     def load_event(self):
+        """Loads event and calls external viewer"""
         fs = FS(args.siwim_cf_data_root, args.siwim_site, args.siwim_cf_rpindex, args.siwim_cf_module)
         filename = eventpath(fs, self.rv)
         shutil.copy(filename, tempfile.gettempdir())
         os.system("start " + os.path.join(tempfile.gettempdir(), os.path.basename(filename)))
+        
+    def set_vehicle_type(self, vehicle_type):
+        """Sets vehicle type"""
+        if self.updating_metadata or self.rv == None:
+            return
+        self.metadata['vehicle_type'] = vehicle_type
+        self.metadata['changed_by'].append((datetime.datetime.now().timestamp(),getpass.getuser()))
+        save_metadata(self.rv, self.metadata)
+        self.show_metadata()
+        
+    def set_groups(self):
+        """Sets axle groups"""
+        if self.updating_metadata or self.rv == None:
+            return
+        try:
+            if self.metadata['axle_groups'] == self.edtGroups.text():
+                return 
+        except:
+            pass
+        self.metadata['axle_groups'] = self.edtGroups.text()
+        self.metadata['changed_by'].append((datetime.datetime.now().timestamp(),getpass.getuser()))
+        save_metadata(self.rv, self.metadata)
+        self.show_metadata()
+        
+               
+    def set_raised(self):
+        """Sets raised axles"""
+        if self.updating_metadata or self.rv == None:
+            return
+        try:
+            if self.metadata['raised_axles'] == self.edtRaised.text():
+                return
+        except:
+            pass
+        self.metadata['raised_axles'] = self.edtRaised.text()
+        self.metadata['changed_by'].append((datetime.datetime.now().timestamp(),getpass.getuser()))
+        save_metadata(self.rv, self.metadata)
+        self.show_metadata()
+        
         
            
 # Load window and run main loop    
@@ -296,7 +416,8 @@ class Window(QMainWindow, Ui_MainWindow):
 app = QApplication(sys.argv)
 win = Window()
 
-win.load_data(rvsd)
+win.load_data(rvs_lists)
+# DEBUG
 #win.cboxAxleGroups.setCurrentIndex(1)
 
 win.show()
