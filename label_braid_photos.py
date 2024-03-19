@@ -8,18 +8,12 @@ Created on Wed Mar 13 12:00:50 2024
 #%% Import stuff
 
 import argparse
-import copy
 import datetime
 import getpass
 import json
-import math
 import os
-import shutil
 import sys
-import tempfile
-import winsound
 
-import h5py
 import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -28,7 +22,7 @@ from matplotlib.figure import Figure
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import  QApplication, QMainWindow, QMessageBox, QScrollArea
+from PyQt5.QtWidgets import  QApplication, QMainWindow, QMessageBox
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if getpass.getuser() == 'jank':
@@ -40,6 +34,8 @@ from swm.utils import datetime2ts
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+from locallib import pngpath, eventpath, load_metadata, save_metadata, count_vehicles, beep
 
 #%% Parse args
 
@@ -60,44 +56,6 @@ try:
     args = parser.parse_args("--count".split())
 except:
     args = parser.parse_args()
-
-#%% SiWIM photo and data paths
-
-def pngpath(root, v):
-    return os.path.join(root, v['vehicle_type'], v['axle_groups'], f"{v['photo_id']}-{v['vehicle_type']}-{v['axle_groups']}-{math.floor(v['type_probability']):.0f}.png")
-
-def event_timestamp(v):
-    return datetime.datetime.fromtimestamp(v2e[str(v['vehicle_timestamp'].timestamp())])
-
-def eventpath(fs, v):
-    ts = datetime2ts(event_timestamp(v))
-    return fs.fullname(ts + ".event")
-
-#%% Data functions
-
-def load_metadata(rv, exists=False):
-    try:
-        with h5py.File(os.path.join(args.data_dir, "metadata.hdf"), 'r') as f:
-            result = json.loads(f[f"{rv['vehicle_type']}/{rv['axle_groups']}/{rv['photo_id']}"].asstr()[()])
-            return True if exists else result
-    except:
-        return False if exists else {'seen_by': [], 'changed_by': []}
-    
-def save_metadata(rv, metadata):
-    with h5py.File(os.path.join(args.data_dir, "metadata.hdf"), 'a') as f:
-        try:
-            grp = f.require_group(f"{rv['vehicle_type']}/{rv['axle_groups']}")
-        except TypeError:
-            grp = f[f"{rv['vehicle_type']}/{rv['axle_groups']}"]
-        try:
-            grp[str(rv['photo_id'])] = json.dumps(metadata)
-        except:
-            data = grp[str(rv['photo_id'])]
-            data[...] = json.dumps(metadata)
-
-def count_vehicles(rvsd):
-    return {vehicle_type: [(key, len(item)) for (key, item) in sorted(entries.items(), key=lambda x: len(x[1]), reverse=True)]
-            for (vehicle_type, entries) in rvsd.items()}  
 
 #%% Load data first and make datetime from timestamps
 
@@ -126,9 +84,6 @@ for rv in rvs_loaded:
 
     
 #%% Main window class and helper functions
-
-def beep():
-    winsound.Beep(1670, 100)
 
 from ui.main_window_ui import Ui_MainWindow
 
@@ -167,14 +122,31 @@ class Window(QMainWindow, Ui_MainWindow):
         self.chkOnlyUnseen.toggled.connect(self.setup_scrollbarPhoto)
         self.scrollbarPhoto.valueChanged.connect(self.show_photo)
         self.chkAutoLoadADMPs.toggled.connect(self.set_chkAutoLoadADMPs)
-        self.btnLoadEvent.clicked.connect(self.load_event)
+        self.btnShowADMPEvent.clicked.connect(lambda: self.load_event('ADMP'))
+        self.btnShowCFEvent.clicked.connect(lambda: self.load_event('CF'))
+        self.btnShowPhoto.clicked.connect(lambda: self.load_event('photo'))
         
-        self.actionIsABus.triggered.connect(lambda: self.set_vehicle_type('bus'))
         self.radioIsABus.toggled.connect(lambda: self.set_vehicle_type('bus'))
-        self.actionIsATruck.triggered.connect(lambda: self.set_vehicle_type('truck'))
         self.radioIsATruck.toggled.connect(lambda: self.set_vehicle_type('truck'))
+        self.actionChangeVehicleType.triggered.connect(lambda: self.set_vehicle_type('truck' if self.radioIsABus.isChecked() else 'bus'))
         self.edtGroups.editingFinished.connect(self.set_groups)
         self.edtRaised.editingFinished.connect(self.set_raised)
+            
+        self.actionWrongLane.triggered.connect(lambda: self.toggle_checkbox(self.chkWrongLane))
+        self.actionWrongVehicle.triggered.connect(lambda: self.toggle_checkbox(self.chkWrongVehicle))
+        self.actionOffLane.triggered.connect(lambda: self.toggle_checkbox(self.chkOffLane))
+        self.actionTruncatedFront.triggered.connect(lambda: self.toggle_checkbox(self.chkTruncatedFront))
+        self.actionTruncatedBack.triggered.connect(lambda: self.toggle_checkbox(self.chkTruncatedBack))
+        self.actionVehicleHalved.triggered.connect(lambda: self.toggle_checkbox(self.chkVehicleHalved))
+        self.actionCannotLabel.triggered.connect(lambda: self.toggle_checkbox(self.chkCannotLabel))
+        
+        self.chkWrongLane.stateChanged.connect(lambda: self.set_error(self.chkWrongLane, 'wrong_lane'))
+        self.chkWrongVehicle.stateChanged.connect(lambda: self.set_error(self.chkWrongVehicle, 'wrong_vehicle'))
+        self.chkOffLane.stateChanged.connect(lambda: self.set_error(self.chkOffLane, 'off_lane'))
+        self.chkTruncatedFront.stateChanged.connect(lambda: self.set_error(self.chkTruncatedFront, 'truncated_front'))
+        self.chkTruncatedBack.stateChanged.connect(lambda: self.set_error(self.chkTruncatedBack, 'truncated_back'))
+        self.chkVehicleHalved.stateChanged.connect(lambda: self.set_error(self.chkVehicleHalved, 'vehicle_halved'))
+        self.chkCannotLabel.stateChanged.connect(lambda: self.set_error(self.chkCannotLabel, 'cannot_label'))
         
     def about(self):
         QMessageBox.about(
@@ -189,13 +161,22 @@ class Window(QMainWindow, Ui_MainWindow):
         QMessageBox.about(
             self,
             "Shortcuts used in this app",
-            """<table>
+            """
+            <table>
             <tr><th>Shortcut</th><th>Action</th></tr>
             <tr><td><kbd>&lt;Up-Arrow&gt;</kbd></td><td>Previous photo</td></tr>
             <tr><td><kbd>&lt;Down-Arrow&gt;</kbd></td><td>Next photo</td></tr>
             <tr><td><kbd>&lt;Alt&gt;-D</kbd></td><td>Load ADMPs</td></tr>
-            <tr><td><kbd>&lt;Alt&gt;-B</kbd></td><td>Vehicle is a bus</td></tr>
-            <tr><td><kbd>&lt;Alt&gt;-T</kbd></td><td>Vehicle is a truck</td></tr>
+            <tr><th>Shortcut</th><th>Action</th></tr>
+            <tr><td><kbd>&lt;Alt&gt;-C</kbd></td><td>Toggle vehicle type: <tt>bus<-->truck</tt></tr>
+            <tr><td><kbd>&lt;Alt&gt;-L</kbd></td><td>Wrong Lane</td></tr>
+            <tr><td><kbd>&lt;Alt&gt;-V</kbd></td><td>Wrong Vehicle</td></tr>
+            <tr><td><kbd>&lt;Alt&gt;-O</kbd></td><td>Off Lane</td></tr>
+            <tr><td><kbd>&lt;Alt&gt;-F</kbd></td><td>Truncated Front</td></tr>
+            <tr><td><kbd>&lt;Alt&gt;-B</kbd></td><td>Truncated Back</td></tr>
+            <tr><td><kbd>&lt;Alt&gt;-H</kbd></td><td>Vehicle Halved</td></tr>
+            <tr><td><kbd>&lt;Alt&gt;-N</kbd></td><td>Cannot Verify</td></tr>
+            </table>
             """
         )
          
@@ -236,7 +217,6 @@ class Window(QMainWindow, Ui_MainWindow):
                 self.scrollbarPhoto.setMaximum(len(self.selected) - 1)
                 self.scrollbarPhoto.setValue(0)
             except:
-                raise
                 self.scrollbarPhoto.setMaximum(0)
                 self.scrollbarPhoto.setValue(0)
         finally:
@@ -255,11 +235,15 @@ class Window(QMainWindow, Ui_MainWindow):
         """Shows photo, loads metadata, updates 'seen_by' and perhaps loads ADMPs"""
         try:
             QApplication.setOverrideCursor(Qt.WaitCursor)
-            if not self.axle_groups():
+            if not self.axle_groups() or self.scrollbarPhoto.sliderPosition() == -1:
                 self.lblPhoto.clear()
                 self.rv = None
                 self.metadata = None
-                self.groupboxLabel.setTitle("Label vehicle 0/0")
+                if self.scrollbarPhoto.sliderPosition() == -1:
+                    self.groupboxLabel.setTitle(f"Vehicle 0/{self.scrollbarPhoto.maximum() + 1}"
+                                                + (f" ({len(rvs_lists[self.vehicle_type()][self.axle_groups()]) - len(self.selected)} already seen)" if self.chkOnlyUnseen.isChecked() else ""))
+                else:
+                    self.groupboxLabel.setTitle("Vehicle 0/0")
             else:
                 self.rv = self.selected[self.scrollbarPhoto.sliderPosition()]
                 filename = pngpath(args.photo_root, self.rv)
@@ -270,13 +254,23 @@ class Window(QMainWindow, Ui_MainWindow):
                     return
                 pixmap = QPixmap(filename)
                 self.lblPhoto.setPixmap(pixmap)
-                self.metadata = load_metadata(self.rv)
-                self.metadata['seen_by'].append((datetime.datetime.now().timestamp(), getpass.getuser()))
-                save_metadata(self.rv, self.metadata)
+                self.metadata = load_metadata(self.rv, args.data_dir)
+                try:
+                    self.last_seen_by = self.metadata['seen_by']
+                except:
+                    self.last_seen_by = None
+                self.metadata['seen_by'] = (datetime.datetime.now().timestamp(), getpass.getuser())
+                save_metadata(self.rv, self.metadata, args.data_dir)
                 self.show_metadata()
-                self.groupboxLabel.setTitle(f"Label vehicle {self.scrollbarPhoto.sliderPosition() + 1}/{self.scrollbarPhoto.maximum() + 1}"
+                try:
+                    changed = ", CHANGED" if self.metadata['changed_by'] else ", ORIGINAL"
+                except:
+                    pass
+                self.groupboxLabel.setTitle(f"Vehicle {self.scrollbarPhoto.sliderPosition() + 1}/{self.scrollbarPhoto.maximum() + 1}"
                                             + (f" ({len(rvs_lists[self.vehicle_type()][self.axle_groups()]) - len(self.selected)} already seen)" if self.chkOnlyUnseen.isChecked() else "")
-                                            + f", photo id: {self.rv['photo_id']}")
+                                            + f", ts: {datetime2ts(self.rv['vehicle_timestamp'])}"
+                                            + f", photo id: {self.rv['photo_id']}"
+                                            + f"{changed}")
             self.load_ADMPs(force_clear=not self.chkAutoLoadADMPs.isChecked())
             self.show_metadata()
         except:
@@ -300,18 +294,18 @@ class Window(QMainWindow, Ui_MainWindow):
             else:
                 # Audit log
                 try:
-                    at = frmt(datetime.datetime.fromtimestamp(self.metadata['seen_by'][-2][0]))
-                    by = self.metadata['seen_by'][-2][1]
-                except (KeyError, IndexError):
+                    at = frmt(datetime.datetime.fromtimestamp(self.last_seen_by[0]))
+                    by = self.last_seen_by[1]
+                except (KeyError, IndexError, TypeError):
                     at = 'now'
                     by = getpass.getuser()
                 self.lblLastSeen.setText(f"Last seen {at} by '{by}'")
                 try:
-                    at = frmt(datetime.datetime.fromtimestamp(self.metadata['changed_by'][-1][0]))
-                    by = self.metadata['changed_by'][-1][1]
-                    self.lblLastChanged.setText(f"Last changed {at} by '{by}'")
-                except (KeyError, IndexError):
-                    self.lblLastChanged.setText("Unchanged")
+                    at = frmt(datetime.datetime.fromtimestamp(self.metadata['changed_by'][0]))
+                    by = self.metadata['changed_by'][1]
+                    self.lblLastChanged.setText(f" Last changed {at} by '{by}'")
+                except (KeyError, IndexError, TypeError):
+                    self.lblLastChanged.setText("")
                 
                 #  Vehicle type
                 try:
@@ -332,6 +326,36 @@ class Window(QMainWindow, Ui_MainWindow):
                     self.edtRaised.setText(self.metadata['raised_axles'])
                 except:
                     self.edtRaised.setText("")
+                    
+                # Errors
+                try:
+                    self.chkWrongLane.setCheckState(self.metadata['errors']['wrong_lane'])
+                except:
+                    self.chkWrongLane.setCheckState(False)
+                try:
+                    self.chkWrongVehicle.setCheckState(self.metadata['errors']['wrong_vehicle'])
+                except:
+                    self.chkWrongVehicle.setCheckState(False)
+                try:
+                    self.chkOffLane.setCheckState(self.metadata['errors']['off_lane'])
+                except:
+                    self.chkOffLane.setCheckState(False)
+                try:
+                    self.chkTruncatedFront.setCheckState(self.metadata['errors']['truncated_front'])
+                except:
+                    self.chkTruncatedFront.setCheckState(False)
+                try:
+                    self.chkTruncatedBack.setCheckState(self.metadata['errors']['truncated_back'])
+                except:
+                    self.chkTruncatedBack.setCheckState(False)
+                try:
+                    self.chkVehicleHalved.setCheckState(self.metadata['errors']['vehicle_halved'])
+                except:
+                    self.chkVehicleHalved.setCheckState(False)
+                try:
+                    self.chkCannotLabel.setCheckState(self.metadata['errors']['cannot_label'])
+                except:
+                    self.chkCannotLabel.setCheckState(False)
         finally:
             self.updating_metadata = False
             
@@ -343,11 +367,11 @@ class Window(QMainWindow, Ui_MainWindow):
         """Load ADMPs from event"""
         self.fig.clf()
         try:
-            plot = self.figureCanvasADMP.figure.subplots(nrows=2, sharex='col')
             QApplication.setOverrideCursor(Qt.WaitCursor)
+            plot = self.figureCanvasADMP.figure.subplots(nrows=2, sharex='col')
             if not force_clear and self.rv is not None:
                 fs = FS(args.siwim_admp_data_root, args.siwim_site, args.siwim_admp_rpindex, args.siwim_admp_module)
-                filename = eventpath(fs, self.rv)
+                filename = eventpath(fs, self.rv, v2e)
                 try:
                     event = read_file(filename)
                 except:
@@ -364,21 +388,36 @@ class Window(QMainWindow, Ui_MainWindow):
             self.fig.canvas.draw_idle()
             QApplication.restoreOverrideCursor()
             
-    def load_event(self):
+    def load_event(self, region):
         """Loads event and calls external viewer"""
-        fs = FS(args.siwim_cf_data_root, args.siwim_site, args.siwim_cf_rpindex, args.siwim_cf_module)
-        filename = eventpath(fs, self.rv)
-        shutil.copy(filename, tempfile.gettempdir())
-        os.system("start " + os.path.join(tempfile.gettempdir(), os.path.basename(filename)))
+        if self.rv == None:
+            return
+        try:
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+            if region in ['CF', 'ADMP']:
+                fs = (FS(args.siwim_cf_data_root, args.siwim_site, args.siwim_cf_rpindex, args.siwim_cf_module) if region == 'CF'
+                      else FS(args.siwim_admp_data_root, args.siwim_site, args.siwim_admp_rpindex, args.siwim_admp_module))
+                filename = eventpath(fs, self.rv, v2e)
+            else:
+                filename = pngpath(args.photo_root, self.rv)
+            # shutil.copy(filename, tempfile.gettempdir())
+            # os.system("start " + os.path.join(tempfile.gettempdir(), os.path.basename(filename)))
+            os.system("start " + filename)
+        finally:
+            QApplication.restoreOverrideCursor()
+
+    def save_changed_metadata(self):
+        """Common code for all changes of metadata"""
+        self.metadata['changed_by'] = (datetime.datetime.now().timestamp(), getpass.getuser())
+        save_metadata(self.rv, self.metadata, args.data_dir)
+        self.show_metadata()
         
     def set_vehicle_type(self, vehicle_type):
         """Sets vehicle type"""
         if self.updating_metadata or self.rv == None:
             return
         self.metadata['vehicle_type'] = vehicle_type
-        self.metadata['changed_by'].append((datetime.datetime.now().timestamp(),getpass.getuser()))
-        save_metadata(self.rv, self.metadata)
-        self.show_metadata()
+        self.save_changed_metadata()
         
     def set_groups(self):
         """Sets axle groups"""
@@ -390,9 +429,7 @@ class Window(QMainWindow, Ui_MainWindow):
         except:
             pass
         self.metadata['axle_groups'] = self.edtGroups.text()
-        self.metadata['changed_by'].append((datetime.datetime.now().timestamp(),getpass.getuser()))
-        save_metadata(self.rv, self.metadata)
-        self.show_metadata()
+        self.save_changed_metadata()
         
                
     def set_raised(self):
@@ -405,11 +442,23 @@ class Window(QMainWindow, Ui_MainWindow):
         except:
             pass
         self.metadata['raised_axles'] = self.edtRaised.text()
-        self.metadata['changed_by'].append((datetime.datetime.now().timestamp(),getpass.getuser()))
-        save_metadata(self.rv, self.metadata)
-        self.show_metadata()
+        self.save_changed_metadata()
+
+    def toggle_checkbox(self, widget):
+        """Helper function for toggling checkboxes with actions"""
+        widget.setCheckState(0 if widget.isChecked() else 2)
         
-        
+    def set_error(self, widget, name):
+        """Sets one of the error flags"""
+        if self.updating_metadata or self.rv == None:
+            return
+        try:
+            self.metadata['errors']
+        except:
+            self.metadata['errors'] = {}
+        self.metadata['errors'][name] = widget.checkState()
+        self.save_changed_metadata()
+                
            
 # Load window and run main loop    
         
@@ -418,7 +467,7 @@ win = Window()
 
 win.load_data(rvs_lists)
 # DEBUG
-#win.cboxAxleGroups.setCurrentIndex(1)
+win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 1)
 
 win.show()
 sys.exit(app.exec())

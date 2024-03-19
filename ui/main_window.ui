@@ -6,9 +6,21 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1418</width>
-    <height>747</height>
+    <width>1311</width>
+    <height>792</height>
    </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>1311</width>
+    <height>792</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>1311</width>
+    <height>792</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>BrAId Photo Labeller</string>
@@ -18,9 +30,9 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>570</y>
-      <width>641</width>
-      <height>141</height>
+      <y>80</y>
+      <width>661</width>
+      <height>671</height>
      </rect>
     </property>
     <property name="title">
@@ -29,10 +41,10 @@
     <widget class="QLabel" name="lblLastSeen">
      <property name="geometry">
       <rect>
-       <x>310</x>
-       <y>120</y>
-       <width>321</width>
-       <height>16</height>
+       <x>10</x>
+       <y>640</y>
+       <width>271</width>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
@@ -42,10 +54,10 @@
     <widget class="QLabel" name="lblLastChanged">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>120</y>
-       <width>291</width>
-       <height>16</height>
+       <x>310</x>
+       <y>640</y>
+       <width>341</width>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
@@ -56,7 +68,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>20</y>
+       <y>510</y>
        <width>71</width>
        <height>81</height>
       </rect>
@@ -97,8 +109,8 @@
     <widget class="QGroupBox" name="groupboxAxles">
      <property name="geometry">
       <rect>
-       <x>90</x>
-       <y>20</y>
+       <x>100</x>
+       <y>510</y>
        <width>171</width>
        <height>81</height>
       </rect>
@@ -153,13 +165,133 @@
       </property>
      </widget>
     </widget>
+    <widget class="QGroupBox" name="groupboxErrors">
+     <property name="geometry">
+      <rect>
+       <x>290</x>
+       <y>510</y>
+       <width>351</width>
+       <height>111</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>Errors</string>
+     </property>
+     <widget class="QCheckBox" name="chkWrongLane">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>20</y>
+        <width>81</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Wrong lane</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="chkWrongVehicle">
+      <property name="geometry">
+       <rect>
+        <x>130</x>
+        <y>20</y>
+        <width>91</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Wrong vehicle</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="chkOffLane">
+      <property name="geometry">
+       <rect>
+        <x>250</x>
+        <y>20</y>
+        <width>70</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Off lane</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="chkTruncatedFront">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>50</y>
+        <width>111</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Photo trunc. front</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="chkTruncatedBack">
+      <property name="geometry">
+       <rect>
+        <x>130</x>
+        <y>50</y>
+        <width>111</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Photo trunc. back</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="chkVehicleHalved">
+      <property name="geometry">
+       <rect>
+        <x>250</x>
+        <y>50</y>
+        <width>81</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Veh. halved</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="chkCannotLabel">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>80</y>
+        <width>101</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Cannot label</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QLabel" name="lblPhoto">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>640</width>
+       <height>480</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Vehicle Photo</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
    </widget>
    <widget class="QGroupBox" name="groupboxSelect">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>641</width>
+      <width>661</width>
       <height>61</height>
      </rect>
     </property>
@@ -237,75 +369,91 @@
     <widget class="QCheckBox" name="chkOnlyUnseen">
      <property name="geometry">
       <rect>
-       <x>450</x>
+       <x>400</x>
        <y>30</y>
        <width>91</width>
        <height>17</height>
       </rect>
      </property>
      <property name="text">
-      <string>Only Unseen</string>
+      <string>Only unseen</string>
      </property>
     </widget>
-   </widget>
-   <widget class="QLabel" name="lblPhoto">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>80</y>
-      <width>640</width>
-      <height>480</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Vehicle Photo</string>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignCenter</set>
-    </property>
+    <widget class="QPushButton" name="btnShowPhoto">
+     <property name="geometry">
+      <rect>
+       <x>500</x>
+       <y>30</y>
+       <width>151</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Show Photo in Viewer</string>
+     </property>
+    </widget>
    </widget>
    <widget class="QScrollBar" name="scrollbarPhoto">
     <property name="geometry">
      <rect>
-      <x>670</x>
+      <x>680</x>
       <y>80</y>
-      <width>16</width>
-      <height>491</height>
+      <width>21</width>
+      <height>671</height>
      </rect>
+    </property>
+    <property name="autoFillBackground">
+     <bool>false</bool>
     </property>
     <property name="orientation">
      <enum>Qt::Vertical</enum>
+    </property>
+    <property name="invertedAppearance">
+     <bool>false</bool>
     </property>
    </widget>
    <widget class="QWidget" name="verticalLayoutWidget">
     <property name="geometry">
      <rect>
-      <x>700</x>
-      <y>70</y>
-      <width>701</width>
-      <height>501</height>
+      <x>710</x>
+      <y>90</y>
+      <width>591</width>
+      <height>491</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="layoutGraph"/>
    </widget>
-   <widget class="QPushButton" name="btnLoadEvent">
+   <widget class="QPushButton" name="btnShowADMPEvent">
     <property name="geometry">
      <rect>
-      <x>1100</x>
-      <y>590</y>
-      <width>75</width>
+      <x>1150</x>
+      <y>60</y>
+      <width>151</width>
       <height>23</height>
      </rect>
     </property>
     <property name="text">
-     <string>Show Event</string>
+     <string>Show ADMP Event in Viewer</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btnShowCFEvent">
+    <property name="geometry">
+     <rect>
+      <x>990</x>
+      <y>60</y>
+      <width>151</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Show CF Event in Viewer</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="chkAutoLoadADMPs">
     <property name="geometry">
      <rect>
-      <x>880</x>
-      <y>590</y>
+      <x>710</x>
+      <y>60</y>
       <width>111</width>
       <height>20</height>
      </rect>
@@ -320,13 +468,13 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1418</width>
+     <width>1311</width>
      <height>21</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menu_About">
+   <widget class="QMenu" name="mnuHelp">
     <property name="title">
-     <string>&amp;Help</string>
+     <string>Help</string>
     </property>
     <addaction name="actionShortcuts"/>
     <addaction name="separator"/>
@@ -334,18 +482,25 @@
    </widget>
    <widget class="QMenu" name="menuPhoto">
     <property name="title">
-     <string>&amp;Photo</string>
+     <string>Photo</string>
     </property>
     <addaction name="actionPicturePrevious"/>
     <addaction name="actionPictureNext"/>
     <addaction name="separator"/>
     <addaction name="actionLoadADMPs"/>
     <addaction name="separator"/>
-    <addaction name="actionIsABus"/>
-    <addaction name="actionIsATruck"/>
+    <addaction name="actionChangeVehicleType"/>
+    <addaction name="actionWrongLane"/>
+    <addaction name="actionWrongVehicle"/>
+    <addaction name="actionOffLane"/>
+    <addaction name="actionTruncatedFront"/>
+    <addaction name="actionTruncatedBack"/>
+    <addaction name="actionVehicleHalved"/>
+    <addaction name="separator"/>
+    <addaction name="actionCannotLabel"/>
    </widget>
    <addaction name="menuPhoto"/>
-   <addaction name="menu_About"/>
+   <addaction name="mnuHelp"/>
   </widget>
   <widget class="QToolBar" name="toolBar">
    <property name="windowTitle">
@@ -368,7 +523,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>&amp;Next</string>
+    <string>Next</string>
    </property>
    <property name="toolTip">
     <string>Next picture</string>
@@ -382,7 +537,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>&amp;Previous</string>
+    <string>Previous</string>
    </property>
    <property name="toolTip">
     <string>Previous picture</string>
@@ -398,26 +553,77 @@
   </action>
   <action name="actionLoadADMPs">
    <property name="text">
-    <string>Load A&amp;DMPs</string>
+    <string>Load ADMPs</string>
    </property>
    <property name="shortcut">
     <string>Alt+D</string>
    </property>
   </action>
-  <action name="actionIsABus">
+  <action name="actionChangeVehicleType">
    <property name="text">
-    <string>Is a &amp;Bus</string>
+    <string>Change Vehicle Type</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+C</string>
+   </property>
+  </action>
+  <action name="actionWrongLane">
+   <property name="text">
+    <string>Wrong Lane</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+L</string>
+   </property>
+  </action>
+  <action name="actionWrongVehicle">
+   <property name="text">
+    <string>Wrong Vehicle</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+V</string>
+   </property>
+  </action>
+  <action name="actionOffLane">
+   <property name="text">
+    <string>Off Lane</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+O</string>
+   </property>
+  </action>
+  <action name="actionTruncatedFront">
+   <property name="text">
+    <string>Truncated Front</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+F</string>
+   </property>
+  </action>
+  <action name="actionTruncatedBack">
+   <property name="text">
+    <string>Truncated Back</string>
    </property>
    <property name="shortcut">
     <string>Alt+B</string>
    </property>
   </action>
-  <action name="actionIsATruck">
+  <action name="actionVehicleHalved">
    <property name="text">
-    <string>Is a &amp;Truck</string>
+    <string>Vehicle Halved</string>
    </property>
    <property name="shortcut">
-    <string>Alt+T</string>
+    <string>Alt+H</string>
+   </property>
+  </action>
+  <action name="actionCannotLabel">
+   <property name="text">
+    <string>Cannot Label</string>
+   </property>
+   <property name="toolTip">
+    <string>Cannot Label</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+N</string>
    </property>
   </action>
  </widget>
