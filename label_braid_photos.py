@@ -43,10 +43,11 @@ parser.add_argument("--siwim_cf_rpindex", help="SiWIM CF replay index", default=
 parser.add_argument("--siwim_cf_module", help="SiWIM CF module", default="cf")
 parser.add_argument("--data_dir", help="Data directory", default=os.path.join(SCRIPT_DIR, 'data'))
 parser.add_argument("--count", help="Count vehicles", action='store_true')
+parser.add_argument("--timeout", help="File write timeout in seconds", type=int, default=10)
 
 try:
     __IPYTHON__
-    args = parser.parse_args("--count".split())
+    args = parser.parse_args("--timeout 10".split())
 except:
     args = parser.parse_args()
 
@@ -75,7 +76,7 @@ for rv in rvs_loaded:
     except:
         rvs_lists[rv['vehicle_type']][rv['axle_groups']] = [rv]
 
-metadata_filename = os.path.join(args.data_dir, "metadata.hdf")
+metadata_filename = os.path.join(args.data_dir, "metadata.hdf5")
     
 #%% Main window class and helper functions
 
@@ -176,6 +177,21 @@ class Window(QMainWindow, Ui_MainWindow):
             """
         )
          
+    def metadata_file_error(self, err):
+        beep()
+        print("="*75)
+        print(f"File {err}\n"
+              f"could not be written after waiting for {args.timeout}s.\n\n"
+              
+"""This can mean that someone else has been writing to the file for some time
+or that you have lost connection to the network drive.
+
+In any case, your most recent change has not been saved, so it is recommended,
+that you stop working now and investigate the cause of problems!""")
+        print("="*75, "\n")
+        beep()
+        self.groupboxLabel.setTitle("Label: FILESYSTEM PROBLEMS!")
+    
     def vehicle_type(self):
         """Returns vehicle type, read from radio buttons"""
         return 'bus' if self.radioSelectBusses.isChecked() else 'truck'
@@ -256,7 +272,10 @@ class Window(QMainWindow, Ui_MainWindow):
                 except:
                     self.last_seen_by = None
                 self.metadata['seen_by'] = (datetime.datetime.now().timestamp(), getpass.getuser())
-                save_metadata(self.rv, self.metadata, metadata_filename)
+                try:
+                    save_metadata(self.rv, self.metadata, metadata_filename, timeout=args.timeout)
+                except RuntimeError as err:
+                    self.metadata_file_error(err)
                 self.show_metadata()
                 try:
                     changed = ", CHANGED" if self.metadata['changed_by'] else ", ORIGINAL"
@@ -415,9 +434,16 @@ class Window(QMainWindow, Ui_MainWindow):
 
     def save_changed_metadata(self):
         """Common code for all changes of metadata"""
-        self.metadata['changed_by'] = (datetime.datetime.now().timestamp(), getpass.getuser())
-        save_metadata(self.rv, self.metadata, metadata_filename)
-        self.show_metadata()
+        try:
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+            self.metadata['changed_by'] = (datetime.datetime.now().timestamp(), getpass.getuser())
+            try:
+                save_metadata(self.rv, self.metadata, metadata_filename, args.timeout)
+            except RuntimeError as err:
+                self.metadata_file_error(err)
+            self.show_metadata()
+        finally:
+            QApplication.restoreOverrideCursor()
         
     def set_vehicle_type(self, vehicle_type):
         """Sets vehicle type"""

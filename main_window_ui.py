@@ -137,7 +137,7 @@ class Ui_MainWindow(object):
         self.radioIsABus.setChecked(True)
         self.radioIsABus.setObjectName("radioIsABus")
         self.chkCannotLabel = QtWidgets.QCheckBox(self.groupboxLabel)
-        self.chkCannotLabel.setGeometry(QtCore.QRect(580, 140, 101, 17))
+        self.chkCannotLabel.setGeometry(QtCore.QRect(580, 130, 101, 17))
         self.chkCannotLabel.setObjectName("chkCannotLabel")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menuBar = QtWidgets.QMenuBar(MainWindow)

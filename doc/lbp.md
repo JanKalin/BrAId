@@ -132,3 +132,14 @@ V naslednjem razdelku se nastavi potrditvena polja za razne napake.
 - **Vozilo razpolovljeno:** Če je medosna razdalja v kakšnem vozilu daljša od najdaljše v klasifikacijski tabeli, SiWIM razpolovi vozilo med tema osema v dve vozili. Bližnjica je `<Alt>-H` za *Veh. **h**alved*.
 - **Presluh:** Včasih pride do presluha z enega pasu na drugega in vozilo se pojavi na obeh pasovih. Bližnjica je `<Alt>-R` za *C**r**osstalk*.
 - Zadnjo možnost se uporabi, ko ni dovolj informacij, da bi sploh pregledal sliko in jo označil (ali pa ne). Tedaj se uporabi **Ne morem označiti**. Bližnjica je `<Alt>-N` za *Ca**n**not label*.
+
+## Uporaba več uporabnikov hkrati
+
+Aplikacija skrbi za to, da jo lahko uporablja več uporabnikov hkrati. V zelo redkih primerih se lahko zgodi, da se zatakne pri dostopu do diska. Lahko pa seveda pride tudi do težav s povezavo v omrežje.
+
+V splošnem to ni problem za podatke, ker gre večinoma za branje. Izjema je datoteka `metadata.hdf5` zaradi:
+
+- Beleženja zadnjega dostopa takoj, ko se slika odpre
+- Shranjevanja sprememb označb napak.
+
+Če aplikacija tega ne more narediti, opozori z dvema piskoma in z izpisom na konzoli. Priporočeno je, da se takrat aplikacijo zapusti in razišče izvor težav, saj se spremembe ne bodo pisale v datoteko.

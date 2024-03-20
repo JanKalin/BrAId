@@ -13,6 +13,7 @@ import json
 import math
 import os
 import sys
+import time
 import winsound
 
 import h5py
@@ -47,9 +48,23 @@ def load_metadata(rv, filename, exists=False):
     except:
         return False if exists else {'seen_by': None, 'changed_by': None}
     
-def save_metadata(rv, metadata, filename):
+def save_metadata(rv, metadata, filename, timeout=None):
     """Saves metadata for recognised vehicle"""
-    with h5py.File(filename, 'a') as f:
+    f = None
+    wait_until = datetime.datetime.now()
+    if timeout:
+         wait_until += datetime.timedelta(seconds=timeout)
+    try:
+        while True:
+            try:
+                f = h5py.File(filename, 'a')
+                break
+            except:
+                if datetime.datetime.now() < wait_until:
+                    time.sleep(0.1)
+                    continue
+                else:
+                    raise RuntimeError(filename)
         try:
             grp = f.require_group(f"{rv['vehicle_type']}/{rv['axle_groups']}")
         except TypeError:
@@ -59,6 +74,9 @@ def save_metadata(rv, metadata, filename):
         except:
             data = grp[str(rv['photo_id'])]
             data[...] = json.dumps(metadata)
+    finally:
+        if f is not None:
+            f.close()
 
 def count_vehicles(rvsd):
     return {vehicle_type: [(key, len(item)) for (key, item) in sorted(entries.items(), key=lambda x: len(x[1]), reverse=True)]
