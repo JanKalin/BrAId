@@ -38,18 +38,18 @@ def eventpath(fs, v, v2e):
     ts = datetime2ts(event_timestamp(v, v2e))
     return fs.fullname(ts + ".event")
 
-def load_metadata(rv, data_dir, exists=False):
+def load_metadata(rv, filename, exists=False):
     """Loads metadata for recognised vehicle"""
     try:
-        with h5py.File(os.path.join(data_dir, "metadata.hdf"), 'r') as f:
+        with h5py.File(filename, 'r') as f:
             result = json.loads(f[f"{rv['vehicle_type']}/{rv['axle_groups']}/{rv['photo_id']}"].asstr()[()])
             return True if exists else result
     except:
         return False if exists else {'seen_by': None, 'changed_by': None}
     
-def save_metadata(rv, metadata, data_dir):
+def save_metadata(rv, metadata, filename):
     """Saves metadata for recognised vehicle"""
-    with h5py.File(os.path.join(data_dir, "metadata.hdf"), 'a') as f:
+    with h5py.File(filename, 'a') as f:
         try:
             grp = f.require_group(f"{rv['vehicle_type']}/{rv['axle_groups']}")
         except TypeError:

@@ -29,12 +29,16 @@ for rv in rvs:
 
 #%% Now change busses for trucks
 
-metadata = {'seen_by': None, 'changed_by': (datetime.datetime.now().timestamp(), "SCRIPT"), 'vehicle_type': 'truck'}
+metadata = {'seen_by': None, 'changed_by': None, 'vehicle_type': 'truck'}
 datadir = os.path.join(SCRIPT_DIR, 'data')
 
+count = 0
 progress = Progress("Processing {} events... {{}}% ".format(len(rvs)), len(rvs))
 for rv in rvs:
     progress.step()
     if rv['vehicle_type'] == 'truck' or rv['axle_groups'] in ['11', '12', '111']:
         continue
     save_metadata(rv, metadata, datadir)
+    count += 1
+
+print("Changed", count, "vehicles")
