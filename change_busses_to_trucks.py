@@ -36,7 +36,7 @@ count = 0
 progress = Progress("Processing {} events... {{}}% ".format(len(rvs)), len(rvs))
 for rv in rvs:
     progress.step()
-    if rv['vehicle_type'] == 'truck' or rv['axle_groups'] in ['11', '12', '111']:
+    if rv['vehicle_type'] == 'truck' or rv['axle_groups'] in ['11', '12', '111', '121']:
         continue
     save_metadata(rv, metadata, datadir)
     count += 1
