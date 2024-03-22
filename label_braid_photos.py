@@ -134,6 +134,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.actionTruncatedBack.triggered.connect(lambda: self.toggle_checkbox(self.chkTruncatedBack))
         self.actionVehicleHalved.triggered.connect(lambda: self.toggle_checkbox(self.chkVehicleHalved))
         self.actionCrosstalk.triggered.connect(lambda: self.toggle_checkbox(self.chkCrosstalk))
+        self.actionGhostAxle.triggered.connect(lambda: self.toggle_checkbox(self.chkGhostAxle))
         self.actionCannotLabel.triggered.connect(lambda: self.toggle_checkbox(self.chkCannotLabel))
         
         self.chkWrongLane.stateChanged.connect(lambda: self.set_error(self.chkWrongLane, 'wrong_lane'))
@@ -143,6 +144,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.chkTruncatedBack.stateChanged.connect(lambda: self.set_error(self.chkTruncatedBack, 'truncated_back'))
         self.chkVehicleHalved.stateChanged.connect(lambda: self.set_error(self.chkVehicleHalved, 'vehicle_halved'))
         self.chkCrosstalk.stateChanged.connect(lambda: self.set_error(self.chkCrosstalk, 'crosstalk'))
+        self.chkGhostAxle.stateChanged.connect(lambda: self.set_error(self.chkGhostAxle, 'ghost_axle'))
         self.chkCannotLabel.stateChanged.connect(lambda: self.set_error(self.chkCannotLabel, 'cannot_label'))
         
     def about(self):
@@ -371,6 +373,10 @@ that you stop working now and investigate the cause of problems!""")
                     self.chkCrosstalk.setCheckState(self.metadata['errors']['crosstalk'])
                 except:
                     self.chkCrosstalk.setCheckState(False)
+                try:
+                    self.chkGhostAxle.setCheckState(self.metadata['errors']['ghost_axle'])
+                except:
+                    self.chkGhostAxle.setCheckState(False)
                 try:
                     self.chkCannotLabel.setCheckState(self.metadata['errors']['cannot_label'])
                 except:
