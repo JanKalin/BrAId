@@ -623,8 +623,6 @@ app = QApplication(sys.argv)
 win = Window()
 
 win.load_data(rvs_batches)
-# DEBUG
-win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 1)
 
 win.show()
 sys.exit(app.exec())
