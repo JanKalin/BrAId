@@ -247,7 +247,7 @@ class Window(QMainWindow, Ui_MainWindow):
             "About BrAId photo labeller",
             "<p>A simple utility to check and manually label AI labelled photos</p>"
             "<p>Jan Kalin &lt;jan.kalin@zag.si&gt;</p>"
-            "<p>v1.0.0, 20. March 2024</p>"
+            "<p>v1.1, 27. March 2024</p>"
         )
 
     def shortcuts(self):
@@ -277,7 +277,7 @@ class Window(QMainWindow, Ui_MainWindow):
             </table>
             """
         )
-         
+                
     def metadata_file_error(self, err):
         beep()
         print("="*75)
@@ -521,7 +521,7 @@ that you stop working now and investigate the cause of problems!""")
             
     def load_file(self, region):
         """Loads event and calls external viewer"""
-        if self.rv == None:
+        if self.rv == None and not region == 'PDF':
             return
         try:
             QApplication.setOverrideCursor(Qt.WaitCursor)
