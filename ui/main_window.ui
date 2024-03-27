@@ -467,9 +467,9 @@
     <widget class="QGroupBox" name="groupboxWimErrors">
      <property name="geometry">
       <rect>
-       <x>420</x>
+       <x>430</x>
        <y>100</y>
-       <width>261</width>
+       <width>251</width>
        <height>51</height>
       </rect>
      </property>
@@ -505,7 +505,7 @@
      <widget class="QCheckBox" name="chkVehicleHalved">
       <property name="geometry">
        <rect>
-        <x>180</x>
+        <x>170</x>
         <y>20</y>
         <width>81</width>
         <height>17</height>
@@ -520,13 +520,26 @@
      <property name="geometry">
       <rect>
        <x>320</x>
-       <y>120</y>
+       <y>110</y>
        <width>101</width>
        <height>17</height>
       </rect>
      </property>
      <property name="text">
       <string>Cannot label</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chkInconsistentData">
+     <property name="geometry">
+      <rect>
+       <x>320</x>
+       <y>130</y>
+       <width>111</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Inconsistent data</string>
      </property>
     </widget>
    </widget>
@@ -545,6 +558,7 @@
      <string>Help</string>
     </property>
     <addaction name="actionShortcuts"/>
+    <addaction name="actionUserManual"/>
     <addaction name="separator"/>
     <addaction name="actionAbout"/>
    </widget>
@@ -568,6 +582,7 @@
     <addaction name="actionGhostAxle"/>
     <addaction name="separator"/>
     <addaction name="actionCannotLabel"/>
+    <addaction name="actionInconsistentData"/>
    </widget>
    <addaction name="menuPhoto"/>
    <addaction name="mnuHelp"/>
@@ -710,6 +725,19 @@
    </property>
    <property name="shortcut">
     <string>Alt+G</string>
+   </property>
+  </action>
+  <action name="actionInconsistentData">
+   <property name="text">
+    <string>Inconsistent Data</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+I</string>
+   </property>
+  </action>
+  <action name="actionUserManual">
+   <property name="text">
+    <string>User Manual</string>
    </property>
   </action>
  </widget>

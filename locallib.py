@@ -39,14 +39,23 @@ def eventpath(fs, v, v2e):
     ts = datetime2ts(event_timestamp(v, v2e))
     return fs.fullname(ts + ".event")
 
-def load_metadata(rv, filename, exists=False):
-    """Loads metadata for recognised vehicle"""
+def load_metadata(rv, filename, exists=False, seen_by=False):
+    """Loads metadata for recognised vehicle
+    if exists is True, returns True if the entry exists, False otherwise
+    if seen_by is True, returns True if it has been seen by anyone, False otherwise
+    """
     try:
         with h5py.File(filename, 'r') as f:
             result = json.loads(f[f"{rv['vehicle_type']}/{rv['axle_groups']}/{rv['photo_id']}"].asstr()[()])
-            return True if exists else result
+            if exists:
+                return True
+            elif seen_by:
+                return result['seen_by'] is not None
+            else:
+                return result
+                
     except:
-        return False if exists else {'seen_by': None, 'changed_by': None}
+        return False if exists or seen_by else {'seen_by': None, 'changed_by': None}    
     
 def save_metadata(rv, metadata, filename, timeout=None):
     """Saves metadata for recognised vehicle"""
@@ -77,10 +86,6 @@ def save_metadata(rv, metadata, filename, timeout=None):
     finally:
         if f is not None:
             f.close()
-
-def count_vehicles(rvsd):
-    return {vehicle_type: [(key, len(item)) for (key, item) in sorted(entries.items(), key=lambda x: len(x[1]), reverse=True)]
-            for (vehicle_type, entries) in rvsd.items()}  
 
 def beep():
     winsound.Beep(1670, 100)

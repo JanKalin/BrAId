@@ -5,16 +5,20 @@ import datetime
 import getpass
 import json
 import os
+import re
+import shutil
 import sys
+import tempfile
 
 import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 import matplotlib.dates as mdates
 from matplotlib.figure import Figure
+import numpy as np
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtGui import QPixmap, QWindow, QValidator
 from PyQt5.QtWidgets import  QApplication, QMainWindow, QMessageBox
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,12 +27,12 @@ sys.path.append(os.path.join(os.path.dirname(SCRIPT_DIR), '..', 'siwim-pi'))
 
 from swm.factory import read_file
 from swm.filesys import FS
-from swm.utils import datetime2ts
+from swm.utils import datetime2ts, str2groups, groups2str
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-from locallib import pngpath, eventpath, load_metadata, save_metadata, count_vehicles, beep
+from locallib import pngpath, eventpath, load_metadata, save_metadata, beep
 
 #%% Parse args
 
@@ -44,6 +48,7 @@ parser.add_argument("--siwim_cf_module", help="SiWIM CF module", default="cf")
 parser.add_argument("--data_dir", help="Data directory", default=os.path.join(SCRIPT_DIR, 'data'))
 parser.add_argument("--count", help="Count vehicles", action='store_true')
 parser.add_argument("--timeout", help="File write timeout in seconds", type=int, default=10)
+parser.add_argument("--batchsize", help="Batch size for better motivation :)", type=int, default=1000)
 
 try:
     __IPYTHON__
@@ -77,8 +82,43 @@ for rv in rvs_loaded:
         rvs_lists[rv['vehicle_type']][rv['axle_groups']] = [rv]
 
 metadata_filename = os.path.join(args.data_dir, "metadata.hdf5")
-    
+
+#%% Make batches
+
+rvs_batches = {'bus': {}, 'truck': {}}
+maxbatches = 0
+for vehicle_type in rvs_lists:
+    for axle_groups in rvs_lists[vehicle_type]:
+        batches = len(rvs_lists[vehicle_type][axle_groups]) // args.batchsize + 1
+        maxbatches = max(maxbatches, batches)
+        if batches == 1:
+            rvs_batches[vehicle_type][axle_groups] = rvs_lists[vehicle_type][axle_groups]
+        else:
+            for batch in range(batches):
+                rvs_batches[vehicle_type][f"{axle_groups} [{batch + 1:02}/{batches:02}]"] = rvs_lists[vehicle_type][axle_groups][batch*args.batchsize:(batch+1)*args.batchsize]   
+
 #%% Main window class and helper functions
+
+class RaisedValidator(QValidator):
+    def __init__(self, parent = None, window=None):
+        QValidator.__init__(self, parent)
+        self.acceptable = re.compile("(\d)(,\d)*")
+        self.intermediate = re.compile("([\d,])*")
+        self.window = window
+    
+    def validate(self, s, pos):
+        if not len(s):
+            return (QValidator.Acceptable, s, pos)
+        elif self.acceptable.fullmatch(s):
+            try:
+                self.window.groups_from_raised(s, self.window.rv['axle_groups'])
+                return (QValidator.Acceptable, s, pos)
+            except:
+                return (QValidator.Intermediate, s, pos)
+        elif self.intermediate.fullmatch(s):
+            return (QValidator.Intermediate, s, pos)
+        else:
+            return (QValidator.Invalid, s, pos)
 
 from main_window_ui import Ui_MainWindow
 
@@ -99,15 +139,64 @@ class Window(QMainWindow, Ui_MainWindow):
         self.lblLastSeen.setText("")
         self.lblLastChanged.setText("")
         self.updating_metadata = False
+        
+        QApplication.instance().installEventFilter(self)
 
-    def load_data(self, rvs_lists):
-        self.rvs_lists = rvs_lists
-        self.vehicle_count = count_vehicles(self.rvs_lists)
+    def eventFilter(self, source, event):
+        if event.type() == QEvent.KeyPress and type(source) is QWindow:
+            if event.key() == Qt.Key_D:
+                self.load_ADMPs()                               
+            elif event.key() == Qt.Key_B and not self.radioIsABus.isChecked():
+                self.set_vehicle_type('bus')
+            elif event.key() == Qt.Key_T and self.radioIsABus.isChecked():
+                self.set_vehicle_type('truck')
+            elif event.key() == Qt.Key_C:
+                self.set_vehicle_type('truck' if self.radioIsABus.isChecked() else 'bus')
+            elif event.key() == Qt.Key_L:
+                self.chkWrongLane.setCheckState(0 if self.chkWrongLane.checkState() else 2)
+            elif event.key() == Qt.Key_V:
+                self.chkWrongVehicle.setCheckState(0 if self.chkWrongVehicle.checkState() else 2)
+            elif event.key() == Qt.Key_O:
+                self.chkOffLane.setCheckState(0 if self.chkOffLane.checkState() else 2)
+            elif event.key() == Qt.Key_F:
+                self.chkTruncatedFront.setCheckState(0 if self.chkTruncatedFront.checkState() else 2)
+            elif event.key() == Qt.Key_B:
+                self.chkTruncatedBack.setCheckState(0 if self.chkTruncatedBack.checkState() else 2)
+            elif event.key() == Qt.Key_H:
+                self.chkVehicleHalved.setCheckState(0 if self.chkVehicleHalved.checkState() else 2)
+            elif event.key() == Qt.Key_R:
+                self.chkCrosstalk.setCheckState(0 if self.chkCrosstalk.checkState() else 2)
+            elif event.key() == Qt.Key_G:
+                self.chkGhostAxle.setCheckState(0 if self.chkGhostAxle.checkState() else 2)
+            elif event.key() == Qt.Key_I:
+                self.chkInconsistentData.setCheckState(0 if self.chkInconsistentData.checkState() else 2)
+            elif event.key() == Qt.Key_N:
+                self.chkCannotLabel.setCheckState(0 if self.chkCannotLabel.checkState() else 2)
+            else:
+                pass
+        return super().eventFilter(source, event)
+    
+    def load_data(self, rvs_batches):
+        self.rvs_batches = rvs_batches
+        self.vehicle_count = {}
+        for (vehicle_type, entries) in rvs_batches.items():
+            counts = {}
+            for key, items in entries.items():
+                groups = key.split()[0]
+                count = len(items)
+                try:
+                    counts[groups]['count'] += count
+                    counts[groups]['keys'].append((key, count))
+                except KeyError:
+                    counts[groups] = {'count': count, 'keys': [(key, count)]}
+            order = sorted(counts.items(), key=lambda x: x[1]['count'], reverse=True)
+            self.vehicle_count[vehicle_type] = [y for x in order for y in x[1]['keys']]
         self.load_cboxAxleGroups()  
 
     def connect_signals_slots(self):
         self.actionAbout.triggered.connect(self.about)
         self.actionShortcuts.triggered.connect(self.shortcuts)
+        self.actionUserManual.triggered.connect(lambda: self.load_file('PDF'))
         self.actionPictureNext.triggered.connect(self.next_photo)
         self.actionPicturePrevious.triggered.connect(self.previous_photo)
         self.actionLoadADMPs.triggered.connect(self.load_ADMPs)
@@ -117,15 +206,18 @@ class Window(QMainWindow, Ui_MainWindow):
         self.chkOnlyUnseen.toggled.connect(self.setup_scrollbarPhoto)
         self.scrollbarPhoto.valueChanged.connect(self.show_photo)
         self.chkAutoLoadADMPs.toggled.connect(self.set_chkAutoLoadADMPs)
-        self.btnShowADMPEvent.clicked.connect(lambda: self.load_event('ADMP'))
-        self.btnShowCFEvent.clicked.connect(lambda: self.load_event('CF'))
-        self.btnShowPhoto.clicked.connect(lambda: self.load_event('photo'))
+        self.btnShowADMPEvent.clicked.connect(lambda: self.load_file('ADMP'))
+        self.btnShowCFEvent.clicked.connect(lambda: self.load_file('CF'))
+        self.btnShowPhoto.clicked.connect(lambda: self.load_file('photo'))
         
         self.radioIsABus.toggled.connect(lambda: self.set_vehicle_type('bus'))
         self.radioIsATruck.toggled.connect(lambda: self.set_vehicle_type('truck'))
         self.actionChangeVehicleType.triggered.connect(lambda: self.set_vehicle_type('truck' if self.radioIsABus.isChecked() else 'bus'))
         self.edtGroups.returnPressed.connect(self.set_groups)
+
+        self.edtRaised.setValidator(RaisedValidator(window=self))
         self.edtRaised.returnPressed.connect(self.set_raised)
+        self.edtRaised.textChanged.connect(self.check_raised)
             
         self.actionWrongLane.triggered.connect(lambda: self.toggle_checkbox(self.chkWrongLane))
         self.actionWrongVehicle.triggered.connect(lambda: self.toggle_checkbox(self.chkWrongVehicle))
@@ -135,6 +227,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.actionVehicleHalved.triggered.connect(lambda: self.toggle_checkbox(self.chkVehicleHalved))
         self.actionCrosstalk.triggered.connect(lambda: self.toggle_checkbox(self.chkCrosstalk))
         self.actionGhostAxle.triggered.connect(lambda: self.toggle_checkbox(self.chkGhostAxle))
+        self.actionInconsistentData.triggered.connect(lambda: self.toggle_checkbox(self.chkInconsistentData))
         self.actionCannotLabel.triggered.connect(lambda: self.toggle_checkbox(self.chkCannotLabel))
         
         self.chkWrongLane.stateChanged.connect(lambda: self.set_error(self.chkWrongLane, 'wrong_lane'))
@@ -145,6 +238,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.chkVehicleHalved.stateChanged.connect(lambda: self.set_error(self.chkVehicleHalved, 'vehicle_halved'))
         self.chkCrosstalk.stateChanged.connect(lambda: self.set_error(self.chkCrosstalk, 'crosstalk'))
         self.chkGhostAxle.stateChanged.connect(lambda: self.set_error(self.chkGhostAxle, 'ghost_axle'))
+        self.chkInconsistentData.stateChanged.connect(lambda: self.set_error(self.chkInconsistentData, 'inconsistent_data'))
         self.chkCannotLabel.stateChanged.connect(lambda: self.set_error(self.chkCannotLabel, 'cannot_label'))
         
     def about(self):
@@ -165,16 +259,21 @@ class Window(QMainWindow, Ui_MainWindow):
             <tr><th>Shortcut</th><th>Action</th></tr>
             <tr><td><kbd>&lt;Up-Arrow&gt;</kbd></td><td>Previous photo</td></tr>
             <tr><td><kbd>&lt;Down-Arrow&gt;</kbd></td><td>Next photo</td></tr>
-            <tr><td><kbd>&lt;Alt&gt;-D</kbd></td><td>Load ADMPs</td></tr>
+            <tr><td><kbd>D</kbd></td><td>Load ADMPs</td></tr>
             <tr><th>Shortcut</th><th>Action</th></tr>
-            <tr><td><kbd>&lt;Alt&gt;-C</kbd></td><td>Toggle vehicle type: <tt>bus &lt;--&gt; truck</tt></tr>
-            <tr><td><kbd>&lt;Alt&gt;-L</kbd></td><td>Wrong Lane</td></tr>
-            <tr><td><kbd>&lt;Alt&gt;-V</kbd></td><td>Wrong Vehicle</td></tr>
-            <tr><td><kbd>&lt;Alt&gt;-O</kbd></td><td>Off Lane</td></tr>
-            <tr><td><kbd>&lt;Alt&gt;-F</kbd></td><td>Truncated Front</td></tr>
-            <tr><td><kbd>&lt;Alt&gt;-B</kbd></td><td>Truncated Back</td></tr>
-            <tr><td><kbd>&lt;Alt&gt;-H</kbd></td><td>Vehicle Halved</td></tr>
-            <tr><td><kbd>&lt;Alt&gt;-N</kbd></td><td>Cannot Verify</td></tr>
+            <tr><td><kbd>B</kbd></td><td>Set vehicle type to <tt>bus</tt></td></tr>
+            <tr><td><kbd>T</kbd></td><td>Set vehicle type to <tt>truck</tt></td></tr>
+            <tr><td><kbd>C</kbd></td><td>Toggle vehicle type: <tt>bus &lt;--&gt; truck</tt></tr>
+            <tr><td><kbd>L</kbd></td><td>Wrong Lane</td></tr>
+            <tr><td><kbd>V</kbd></td><td>Wrong Vehicle</td></tr>
+            <tr><td><kbd>O</kbd></td><td>Off Lane</td></tr>
+            <tr><td><kbd>F</kbd></td><td>Truncated Front</td></tr>
+            <tr><td><kbd>B</kbd></td><td>Truncated Back</td></tr>
+            <tr><td><kbd>H</kbd></td><td>Vehicle Split</td></tr>
+            <tr><td><kbd>R</kbd></td><td>Crosstalk</td></tr>
+            <tr><td><kbd>G</kbd></td><td>Ghost Axle</td></tr>
+            <tr><td><kbd>I</kbd></td><td>Inconsistent data</td></tr>
+            <tr><td><kbd>N</kbd></td><td>Cannot Label</td></tr>
             </table>
             """
         )
@@ -226,8 +325,8 @@ that you stop working now and investigate the cause of problems!""")
         try:
             QApplication.setOverrideCursor(Qt.WaitCursor)
             try:
-                self.selected = [x for x in self.rvs_lists[self.vehicle_type()][self.axle_groups()]
-                                 if not self.chkOnlyUnseen.isChecked() or not load_metadata(x, metadata_filename, exists=True)]
+                self.selected = [x for x in self.rvs_batches[self.vehicle_type()][self.axle_groups()]
+                                 if not self.chkOnlyUnseen.isChecked() or not load_metadata(x, metadata_filename, seen_by=True)]
                 self.scrollbarPhoto.setMaximum(len(self.selected) - 1)
                 self.scrollbarPhoto.setValue(0)
             except:
@@ -255,7 +354,7 @@ that you stop working now and investigate the cause of problems!""")
                 self.metadata = None
                 if self.scrollbarPhoto.sliderPosition() == -1:
                     self.groupboxPhoto.setTitle(f"Photo 0/{self.scrollbarPhoto.maximum() + 1}"
-                                                + (f" ({len(rvs_lists[self.vehicle_type()][self.axle_groups()]) - len(self.selected)} already seen)" if self.chkOnlyUnseen.isChecked() else ""))
+                                                + (f" ({len(rvs_batches[self.vehicle_type()][self.axle_groups()]) - len(self.selected)} already seen)" if self.chkOnlyUnseen.isChecked() else ""))
                 else:
                     self.groupboxPhoto.setTitle("Photo")
             else:
@@ -284,7 +383,7 @@ that you stop working now and investigate the cause of problems!""")
                 except:
                     pass
                 self.groupboxPhoto.setTitle(f"Photo {self.scrollbarPhoto.sliderPosition() + 1}/{self.scrollbarPhoto.maximum() + 1}"
-                                            + (f" ({len(rvs_lists[self.vehicle_type()][self.axle_groups()]) - len(self.selected)} already seen)" if self.chkOnlyUnseen.isChecked() else "")
+                                            + (f" ({len(rvs_batches[self.vehicle_type()][self.axle_groups()]) - len(self.selected)} already seen)" if self.chkOnlyUnseen.isChecked() else "")
                                             + f", ts: {datetime2ts(self.rv['vehicle_timestamp'])}"
                                             + f", photo id: {self.rv['photo_id']}"
                                             + f"{changed}")
@@ -420,7 +519,7 @@ that you stop working now and investigate the cause of problems!""")
             self.fig.canvas.draw_idle()
             QApplication.restoreOverrideCursor()
             
-    def load_event(self, region):
+    def load_file(self, region):
         """Loads event and calls external viewer"""
         if self.rv == None:
             return
@@ -430,11 +529,14 @@ that you stop working now and investigate the cause of problems!""")
                 fs = (FS(args.siwim_cf_data_root, args.siwim_site, args.siwim_cf_rpindex, args.siwim_cf_module) if region == 'CF'
                       else FS(args.siwim_admp_data_root, args.siwim_site, args.siwim_admp_rpindex, args.siwim_admp_module))
                 filename = eventpath(fs, self.rv, v2e)
-            else:
+            elif region == 'photo':
                 filename = pngpath(args.photo_root, self.rv)
-            # shutil.copy(filename, tempfile.gettempdir())
-            # os.system("start " + os.path.join(tempfile.gettempdir(), os.path.basename(filename)))
-            os.system("start " + filename)
+            elif region == 'PDF': 
+                filename = os.path.join(SCRIPT_DIR, 'doc', 'lbp.pdf')
+            else:
+                raise ValueError(f"Invalid region: {region}")
+            shutil.copy(filename, tempfile.gettempdir())
+            os.system("start " + os.path.join(tempfile.gettempdir(), os.path.basename(filename)))
         finally:
             QApplication.restoreOverrideCursor()
 
@@ -453,7 +555,7 @@ that you stop working now and investigate the cause of problems!""")
         
     def set_vehicle_type(self, vehicle_type):
         """Sets vehicle type"""
-        if self.updating_metadata or self.rv == None:
+        if self.updating_metadata or self.rv == None or self.metadata == None:
             return
         self.metadata['vehicle_type'] = vehicle_type
         self.save_changed_metadata()
@@ -462,27 +564,43 @@ that you stop working now and investigate the cause of problems!""")
         """Sets axle groups"""
         if self.updating_metadata or self.rv == None:
             return
-        try:
-            if self.metadata['axle_groups'] == self.edtGroups.text():
-                return 
-        except:
-            pass
         self.metadata['axle_groups'] = self.edtGroups.text()
         self.save_changed_metadata()
-        
-               
+                  
+    def groups_from_raised(self, raised, groups):
+        """Calculates groups from raised"""
+        if not len(raised):
+            return groups
+        groups = np.array(str2groups(groups))
+        parts = raised.split(",")
+        for pos in [int(x) for x in parts]:
+            if pos < 1 or pos > len(groups):
+                raise ValueError(f"Position cannot be less than 1 or greater than {len(groups)}: {pos}")
+            groups[pos-1] += 1
+        return groups2str(tuple(groups))
+    
+    def check_raised(self):
+        sender = self.sender()
+        validator = sender.validator()
+        state = validator.validate(sender.text(), 0)[0]
+        if state == QValidator.Acceptable:
+            color = '#ffffff' # white
+            self.edtGroups.setText(self.groups_from_raised(sender.text(), self.rv['axle_groups']))
+        elif state == QValidator.Intermediate:
+            color = '#fff79a' # yellow
+            self.edtGroups.setText(self.groups_from_raised("", self.rv['axle_groups']))
+        else:
+            color = '#f6989d' # red
+        sender.setStyleSheet('QLineEdit { background-color: %s }' % color)        
+
     def set_raised(self):
         """Sets raised axles"""
         if self.updating_metadata or self.rv == None:
             return
-        try:
-            if self.metadata['raised_axles'] == self.edtRaised.text():
-                return
-        except:
-            pass
         self.metadata['raised_axles'] = self.edtRaised.text()
+        self.set_groups()
         self.save_changed_metadata()
-
+        
     def toggle_checkbox(self, widget):
         """Helper function for toggling checkboxes with actions"""
         widget.setCheckState(0 if widget.isChecked() else 2)
@@ -504,9 +622,9 @@ that you stop working now and investigate the cause of problems!""")
 app = QApplication(sys.argv)
 win = Window()
 
-win.load_data(rvs_lists)
+win.load_data(rvs_batches)
 # DEBUG
-# win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 1)
+win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 1)
 
 win.show()
 sys.exit(app.exec())

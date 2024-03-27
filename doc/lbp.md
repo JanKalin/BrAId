@@ -4,7 +4,16 @@
 
 Jan Kalin <jan.kalin@zag.si>
 
-v1.0, 20. Marec 2024
+v1.1, 27. marec 2024
+
+- Velike množice vozil (npr., tovornjaki s skupinam 113) so razdeljene na podmnožice moči 1000.
+- Bližnjice so brez `<Alt>`
+- Nov način opisovanja dvignjenih osi
+- Dodana napaka **Nekonsistentni Podatki**
+
+v1.0, 20. marec 2024
+
+- Začetna izdaja
 
 ## Uvod
 
@@ -76,9 +85,11 @@ V meniju sta dve postavki. `Photo` vsebuje postavke za premikanje po fotografija
 
 ![select](select.png)
 
-Tukaj se izbere množico vozil za označevanje. Struktura podatkov o slikah je bila določena na FAMNIT na osnovi uporabe AI klasifikacije slik, tega se drži tudi aplikacija. Glavni nivo je delitev na avtobuse in tovornjake, kar se izbere z izbirnim gumbom *Busses* ali *Trucks*. Znotraj tega je delitev na skupine osi vozil. Primer je 113, ki predstavlja klasičen vlačilec s polpriklopnikom (šleper po domače). 
+Tukaj se izbere množico vozil za označevanje. Struktura podatkov o slikah je bila določena na FAMNIT na osnovi uporabe AI klasifikacije slik, tega se drži tudi aplikacija. Glavni nivo je delitev na avtobuse in tovornjake, kar se izbere z izbirnim gumbom *Busses* ali *Trucks*. Znotraj tega je delitev na skupine osi vozil. Primer je 113, ki predstavlja klasičen vlačilec s polpriklopnikom (šleper po domače).
 
-Če smo že pregledovali slike, lahko uporabimo potrditveno polje *Only unseen* in s tem omogočimo nalaganje samo tistih slik, ki jih še noben ni videl.
+Velike množice vozil (npr., tovornjaki s skupinami 113) so razdeljene na podmnožice moči 1000. S tem je lažje načrtovati in razdeliti obdelavo med več ljudi, saj je obdelovanje različnih podmnožic varno. Hkrati pa predvidevamo, da 1000 vozil predstavlja za približno uro dela, če predpostavimo 3.6 sekunde za povprečen pregled in morebitni popravek enega vozila. V tem primeru so vnosi v polju *Axle groups:* oblike, npr., `113 [02/13] (1000)`, kar pomeni druga podmnožica (z močjo 1000) izmed 13 podmnožic vozil s skupinami 113.
+
+Potrditveno polje *Only unseen* omogoča nalaganje samo tistih slik, ki jih še noben ni videl.
 
 Ko je slika naložena, jo je možno s klikom na *Show photo in viewer* naložiti v eksterni pregledovalnik slik.
 
@@ -90,7 +101,7 @@ V tem razdelku se lahko vidi signale iz detektorjev osi. Primer je na sledeči s
 
 Zgornji graf je za pas 1, spodnji za pas 2. Na grafih je z modro narisan originalni signal, z oranžno filtriran signal, s črnimi črtami detektirane osi, ter z zeleno črto timestamp obravnavanega vozila.
 
-Z odkljukanim izbirnim poljem *Auto load ADMPs* se signali naložijo avtomatično, skupaj s sliko. Drugače je potrebno pritisniti `<Alt>-D`.
+Z odkljukanim izbirnim poljem *Auto load ADMPs* se signali naložijo avtomatično, skupaj s sliko. Drugače je potrebno pritisniti `D`.
 
 S tipkama *Show ADMP event in viewer* in *Show CF event in viewer* se lahko signale pregleda v zunanjem pregledovalniku SiWIM eventov. Dve možnosti sta zato, ker v *CF* event-ih ni diagnostike za  detektorje osi, v *ADMP* event-ih pa ni diagnostike o tehtanju.
 
@@ -112,26 +123,32 @@ Takoj, ko se zabeleži sprememba katere izmed oznak, se ta sprememba napiše v d
 
 ##### Tip vozila
 
-Z `<Alt>-C` (za **C**hange) se preklaplja med *Bus* in *Truck*. Nekateri tovornjaki, ki jih je AI napačno klasificiral kot avtobus, imajo že nastavljeno to izbirno polje (na osnovi skupin osi)
+Z `C` (za ***C**hange*) se preklaplja med *Bus* in *Truck*. Tip lahko tudi neposredno določimo s tipkama `B` za ***B**us* in `T` za ***T**ruck*. Nekateri tovornjaki, ki jih je AI napačno klasificiral kot avtobus, imajo že nastavljeno to izbirno polje (na osnovi skupin osi)
 
-##### Osi
+##### Osi, grupe in dvignjene osi
 
 V polju *Groups* se prikažejo trenutno detektirane skupine osi, npr., 113. Če se izkaže, da je SiWIM napačno detektiral osi, se tukaj popravi v pravilno vrednost. Vnos se konča s pritiskom na tipko `<Enter>`. V polju obstaja tudi "undo", s klasično tipko `<Ctrl>-Z`. 
 
-V polju *Raised* se navede zaporedno številko dvignjene osi. Tipičen primer je, ko šleper dvigne prvo os v trojčku na polpriklopniku. Tedaj bi SiWIM detektiral skupine 112. V tem primeru spremenimo skupine na 113, v polje *Raised* pa se vpiše 3 — dvignjena je tretja os po vrsti.
+V polju *Raised* se navede grupo v kateri je dvignjena os. Tipičen primer je, ko šleper dvigne prvo os v trojčku na polpriklopniku. Tedaj bi SiWIM detektiral skupine 112. V tem primeru v polje *Raised* vpišemo vrednost `3` (ker je manjkajoča os v tretji skupini osi). Lahko je dvignjenih več os, tedaj z vejico ločimo grupe z dvignjenimi osmi. V fiktivnem primeru, ko bi polpriklopnik dvignil dve osi v trojni osi, pa še vlekel bi priklopnik z eno dvignjeno osjo od dveh, bi v polje vnesel `3,3,4`.
+
+Pri spreminjanju polja *Raised* aplikacija samodejno popravi vrednost v polju *Groups*, v tem primeru bi se skupine 112 spremenile v 113. Sprememba se ne zabeleži dokler se ne potrdi vrednost polja *Raised* s pritiskom na tipko `<Enter>`. Po tem je seveda možno še ročno popraviti polje *Groups*.
+
+N.B.: Pri avtomatskem spreminjanju polja *Groups*, se za izhodišče vedno vzame originalno vrednost. Torej, če vozilu 122 ročno popravimo grupe na 123, potem pa še v polju *Raised* določimo dvignjeno osi v drugi grupi z vnosom vrednosti `2`, bo aplikacija zavrgla ročno spremembo skupin in končni rezultat bodo skupine 132.
 
 ##### Označevanje napak
 
 V naslednjem razdelku se nastavi potrditvena polja za razne napake.
 
-- **Napačni pas:** Načeloma so med vozili izbrana samo tista, ki jih je SiWIM detektiral na prvem pasu. Če je AI našel vozilo na drugem pasu, se to označi tukaj. Bližnjica je `<Alt>-L` za *Wrong **l**ane*.
-- **Napačno vozilo:** Včasih AI detektira drugo vozilo, na primer avtobus, ki vozi blizu kombija. Bližnjica je `<Alt>-V` za *Wrong **v**ehicle*.
-- **S pasu:** Včasih se zgodi, da vozilo ne vozi po svojem pasu. Bližnjica je `<Alt>-O`, za ***O**ff lane*.
-- **Slika odrezana spredaj:** Če je slika vozila odrezana na sprednjem koncu vozila. Bližnjica je `<Alt>-F` za *Photo trunc. **f**ront*.
-- **Slika odrezana zadaj:** Če je slika vozila odrezana na zadnjem koncu vozila. Bližnjica je `<Alt>-F` za *Photo trunc. **b**ack*.
-- **Vozilo razpolovljeno:** Če je medosna razdalja v kakšnem vozilu daljša od najdaljše v klasifikacijski tabeli, SiWIM razpolovi vozilo med tema osema v dve vozili. Bližnjica je `<Alt>-H` za *Veh. **h**alved*.
-- **Presluh:** Včasih pride do presluha z enega pasu na drugega in vozilo se pojavi na obeh pasovih. Bližnjica je `<Alt>-R` za *C**r**osstalk*.
-- Zadnjo možnost se uporabi, ko ni dovolj informacij, da bi sploh pregledal sliko in jo označil (ali pa ne). Tedaj se uporabi **Ne morem označiti**. Bližnjica je `<Alt>-N` za *Ca**n**not label*.
+- **Napačni pas:** Načeloma so med vozili izbrana samo tista, ki jih je SiWIM detektiral na prvem pasu. Če je AI našel vozilo na drugem pasu, se to označi tukaj. Bližnjica je `L` za *Wrong **l**ane*.
+- **Napačno vozilo:** Včasih AI detektira drugo vozilo, na primer avtobus, ki vozi blizu kombija. Bližnjica je `V` za *Wrong **v**ehicle*.
+- **S pasu:** Včasih se zgodi, da vozilo ne vozi po svojem pasu. Bližnjica je `O`, za ***O**ff lane*.
+- **Slika odrezana spredaj:** Če je slika vozila odrezana na sprednjem koncu vozila. Bližnjica je `F` za *Photo trunc. **f**ront*.
+- **Slika odrezana zadaj:** Če je slika vozila odrezana na zadnjem koncu vozila. Bližnjica je `B` za *Photo trunc. **b**ack*.
+- **Vozilo razpolovljeno:** Če je medosna razdalja v kakšnem vozilu daljša od najdaljše v klasifikacijski tabeli, SiWIM razpolovi vozilo med tema osema v dve vozili. Bližnjica je `H` za *Veh. **h**alved*.
+- **Presluh:** Včasih pride do presluha z enega pasu na drugega in vozilo se pojavi na obeh pasovih. Bližnjica je `R` za *C**r**osstalk*.
+- **Navidezna os:** To je mišljeno predvsem za osi pred ali po legitimnem vozilu, ne odvečno osi znotraj vozila. Bližnjica = `G` za ***G**host axle*.
+- **Nekonsistenti podatki:** Včasih pride do razhajanj med detektiranimi osmi in osmi prikazanimi na grafu. To je zato, ker so bile osi za graf rekonsturirane z, kot kaže, malenkost drugačnimi parametri detekcije osi. Tedaj se lahko preveri stanje z ogledom originalnih podatkov (*Show CF event in viewer*) in označi napako. Bližnjica je `I`, za ***I**nconsistent data*.
+- Zadnjo možnost se uporabi, ko ni dovolj informacij, da bi sploh pregledal sliko in jo označil (ali pa ne). Tedaj se uporabi **Ne morem označiti**. Bližnjica je `N` za *Ca**n**not label*.
 
 ## Uporaba več uporabnikov hkrati
 
