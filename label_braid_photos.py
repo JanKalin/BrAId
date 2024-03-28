@@ -145,33 +145,47 @@ class Window(QMainWindow, Ui_MainWindow):
     def eventFilter(self, source, event):
         if event.type() == QEvent.KeyPress and type(source) is QWindow:
             if event.key() == Qt.Key_D:
-                self.load_ADMPs()                               
+                self.load_ADMPs()
+                return True
             elif event.key() == Qt.Key_B and not self.radioIsABus.isChecked():
                 self.set_vehicle_type('bus')
+                return True
             elif event.key() == Qt.Key_T and self.radioIsABus.isChecked():
                 self.set_vehicle_type('truck')
+                return True
             elif event.key() == Qt.Key_C:
                 self.set_vehicle_type('truck' if self.radioIsABus.isChecked() else 'bus')
+                return True
             elif event.key() == Qt.Key_L:
                 self.chkWrongLane.setCheckState(0 if self.chkWrongLane.checkState() else 2)
+                return True
             elif event.key() == Qt.Key_V:
                 self.chkWrongVehicle.setCheckState(0 if self.chkWrongVehicle.checkState() else 2)
+                return True
             elif event.key() == Qt.Key_O:
                 self.chkOffLane.setCheckState(0 if self.chkOffLane.checkState() else 2)
+                return True
             elif event.key() == Qt.Key_F:
                 self.chkTruncatedFront.setCheckState(0 if self.chkTruncatedFront.checkState() else 2)
+                return True
             elif event.key() == Qt.Key_B:
                 self.chkTruncatedBack.setCheckState(0 if self.chkTruncatedBack.checkState() else 2)
+                return True
             elif event.key() == Qt.Key_H:
                 self.chkVehicleHalved.setCheckState(0 if self.chkVehicleHalved.checkState() else 2)
+                return True
             elif event.key() == Qt.Key_R:
                 self.chkCrosstalk.setCheckState(0 if self.chkCrosstalk.checkState() else 2)
+                return True
             elif event.key() == Qt.Key_G:
                 self.chkGhostAxle.setCheckState(0 if self.chkGhostAxle.checkState() else 2)
+                return True
             elif event.key() == Qt.Key_I:
                 self.chkInconsistentData.setCheckState(0 if self.chkInconsistentData.checkState() else 2)
+                return True
             elif event.key() == Qt.Key_N:
                 self.chkCannotLabel.setCheckState(0 if self.chkCannotLabel.checkState() else 2)
+                return True
             else:
                 pass
         return super().eventFilter(source, event)
