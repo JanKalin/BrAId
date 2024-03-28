@@ -507,13 +507,18 @@ that you stop working now and investigate the cause of problems!""")
                 for lane, chs in enumerate([['11admp', '11diff'], ['21admp', '21diff']]):
                     for ch in chs:
                         if ch in df.columns:
-                            plot[lane].plot(df.index, df[ch], label=f"{ch[-4:]}_{ch[0]}")
+                            plot[lane].plot(df.index, df[ch])
                             ylim[lane] = plot[lane].get_ylim()
+                axle_distance = None
                 for idx, vehicle in enumerate(event.detected_vehicles):
                     (ymin, ymax) = ylim[vehicle.lane]
                     plot[vehicle.lane].vlines([datetime.timedelta(seconds=x.t0/512) + vehicle.event_timestamp for x in vehicle.axle],
                                               ymin, ymin + (ymax - ymin)/10, color='k')
+                    if vehicle.timestamp == self.rv['vehicle_timestamp']:
+                        axle_distance = vehicle.axle_distance
                 plot[0].vlines(self.rv['vehicle_timestamp'], ylim[0][0] + (ylim[0][1] - ylim[0][0])/10, ylim[0][1], color='g')
+                plot[0].text(plot[0].get_xlim()[1], plot[0].get_ylim()[1], "\n".join([f"$A_{i+1}$: {x:5.2f}m" for (i, x) in enumerate(axle_distance)]),
+                             ha='right', va='top')
                 plot[lane].xaxis.set_major_formatter(self.formatter)
         finally:
             self.fig.canvas.draw_idle()
@@ -623,6 +628,8 @@ app = QApplication(sys.argv)
 win = Window()
 
 win.load_data(rvs_batches)
+# DEBUG
+win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 1)
 
 win.show()
 sys.exit(app.exec())

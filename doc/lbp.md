@@ -51,10 +51,12 @@ V direktoriju `M:\disk_600_konstrukcije\JanK\braid_photo\data` so podatki:
 Za polno funkcionalnost aplikacije je treba priklopiti nekaj omrežnih diskov pod točno določenimi imeni:
 
 - `\\mn-620-modeli.zag.si\siwim` kot `S:`
-- `\\mn-620-modeli.zag.si\nfssiwim` kot `T:`
+- `\\mn-620-modeli.zag.si\nfs-siwim` kot `T:`
 - `\\mn-620-modeli.zag.si\braid` kot `B:`
 
 V kolikor ne morete priklopiti diskov se oglasite pri avtorju.
+
+Opozorilo: po reboot/sleep/hybernation,... je treba klikniti na vsakega izmed teh diskov v Explorerju. Windows imajo namreč to grdo navado, da disk dejansko priklopijo šele potem, ko v Explorerju klikneš nanj. Če pa poskuša kakšna aplikacija priti do diska pred tem, pride do napake.
 
 ## Uporaba aplikacije
 
@@ -99,7 +101,7 @@ V tem razdelku se lahko vidi signale iz detektorjev osi. Primer je na sledeči s
 
 ![ADMPs](ADMPs.png)
 
-Zgornji graf je za pas 1, spodnji za pas 2. Na grafih je z modro narisan originalni signal, z oranžno filtriran signal, s črnimi črtami detektirane osi, ter z zeleno črto timestamp obravnavanega vozila.
+Zgornji graf je za pas 1, spodnji za pas 2. Na grafih je z modro narisan originalni signal, z oranžno filtriran signal, s črnimi črtami detektirane osi, ter z zeleno črto timestamp obravnavanega vozila. Ob desnem robu so izpisane medosne razdalje vozila.
 
 Z odkljukanim izbirnim poljem *Auto load ADMPs* se signali naložijo avtomatično, skupaj s sliko. Drugače je potrebno pritisniti `D`.
 
