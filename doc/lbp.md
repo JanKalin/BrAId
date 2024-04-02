@@ -4,6 +4,10 @@
 
 Jan Kalin <jan.kalin@zag.si>
 
+v1.2, 29. marec 2024
+
+- Dodana razlaga ADMP/CF  v razdelku ADMPs
+
 v1.1, 27. marec 2024
 
 - Velike množice vozil (npr., tovornjaki s skupinam 113) so razdeljene na podmnožice moči 1000.
@@ -97,7 +101,7 @@ Ko je slika naložena, jo je možno s klikom na *Show photo in viewer* naložiti
 
 #### *ADMPs*
 
-V tem razdelku se lahko vidi signale iz detektorjev osi. Primer je na sledeči sliki.
+V tem razdelku se lahko vidi signale iz detektorjev osi (ADMP kanalov). Primer je na sledeči sliki.
 
 ![ADMPs](ADMPs.png)
 
@@ -106,6 +110,8 @@ Zgornji graf je za pas 1, spodnji za pas 2. Na grafih je z modro narisan origina
 Z odkljukanim izbirnim poljem *Auto load ADMPs* se signali naložijo avtomatično, skupaj s sliko. Drugače je potrebno pritisniti `D`.
 
 S tipkama *Show ADMP event in viewer* in *Show CF event in viewer* se lahko signale pregleda v zunanjem pregledovalniku SiWIM eventov. Dve možnosti sta zato, ker v *CF* event-ih ni diagnostike za  detektorje osi, v *ADMP* event-ih pa ni diagnostike o tehtanju.
+
+Pri pretehtavanju vozil so šli podatki nazadnje skozi modul `cf`, ki surove teže pomnoži s kalibracijskim faktorjem. Vendar je bilo v teh datotekah izklopljeno shranjevanje diagnostik za detekcijo osi. Za potrebe projekta sem spustil vse originalne event-a še skozi generiranje diagnostik za ADMPje, ni pa šlo skozi tehtanje.
 
 #### *Photo*
 
