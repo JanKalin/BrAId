@@ -7,19 +7,19 @@
     <x>0</x>
     <y>0</y>
     <width>1331</width>
-    <height>792</height>
+    <height>832</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>1311</width>
-    <height>792</height>
+    <height>832</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>1331</width>
-    <height>792</height>
+    <height>832</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -30,7 +30,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>80</y>
+      <y>280</y>
       <width>691</width>
       <height>511</height>
      </rect>
@@ -79,62 +79,17 @@
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>661</width>
+      <width>691</width>
       <height>61</height>
      </rect>
     </property>
     <property name="title">
      <string>Select vehicle groups for labelling</string>
     </property>
-    <widget class="QFrame" name="frameBussesAndTrucks">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>20</y>
-       <width>151</width>
-       <height>31</height>
-      </rect>
-     </property>
-     <property name="frameShape">
-      <enum>QFrame::StyledPanel</enum>
-     </property>
-     <property name="frameShadow">
-      <enum>QFrame::Raised</enum>
-     </property>
-     <widget class="QRadioButton" name="radioSelectBusses">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>10</y>
-        <width>61</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Busses</string>
-      </property>
-      <property name="checked">
-       <bool>true</bool>
-      </property>
-     </widget>
-     <widget class="QRadioButton" name="radioSelectTrucks">
-      <property name="geometry">
-       <rect>
-        <x>80</x>
-        <y>10</y>
-        <width>61</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Trucks</string>
-      </property>
-     </widget>
-    </widget>
     <widget class="QLabel" name="lblAxleGroups">
      <property name="geometry">
       <rect>
-       <x>180</x>
+       <x>20</x>
        <y>30</y>
        <width>61</width>
        <height>16</height>
@@ -147,9 +102,9 @@
     <widget class="QComboBox" name="cboxAxleGroups">
      <property name="geometry">
       <rect>
-       <x>250</x>
+       <x>90</x>
        <y>30</y>
-       <width>121</width>
+       <width>141</width>
        <height>21</height>
       </rect>
      </property>
@@ -157,20 +112,20 @@
     <widget class="QCheckBox" name="chkOnlyUnseen">
      <property name="geometry">
       <rect>
-       <x>400</x>
+       <x>280</x>
        <y>30</y>
-       <width>91</width>
+       <width>161</width>
        <height>17</height>
       </rect>
      </property>
      <property name="text">
-      <string>Only unseen</string>
+      <string>Show only unseen vehicles</string>
      </property>
     </widget>
     <widget class="QPushButton" name="btnShowPhoto">
      <property name="geometry">
       <rect>
-       <x>500</x>
+       <x>520</x>
        <y>30</y>
        <width>151</width>
        <height>23</height>
@@ -184,10 +139,10 @@
    <widget class="QGroupBox" name="groupboxADMPs">
     <property name="geometry">
      <rect>
-      <x>708</x>
-      <y>10</y>
+      <x>710</x>
+      <y>250</y>
       <width>611</width>
-      <height>581</height>
+      <height>541</height>
      </rect>
     </property>
     <property name="title">
@@ -197,7 +152,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>90</y>
+       <y>50</y>
        <width>591</width>
        <height>481</height>
       </rect>
@@ -208,7 +163,7 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>30</y>
+       <y>20</y>
        <width>111</width>
        <height>20</height>
       </rect>
@@ -223,8 +178,8 @@
     <widget class="QPushButton" name="btnShowADMPEvent">
      <property name="geometry">
       <rect>
-       <x>130</x>
-       <y>30</y>
+       <x>220</x>
+       <y>20</y>
        <width>151</width>
        <height>23</height>
       </rect>
@@ -236,8 +191,8 @@
     <widget class="QPushButton" name="btnShowCFEvent">
      <property name="geometry">
       <rect>
-       <x>450</x>
-       <y>30</y>
+       <x>440</x>
+       <y>20</y>
        <width>151</width>
        <height>23</height>
       </rect>
@@ -251,9 +206,9 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>590</y>
+      <y>80</y>
       <width>691</width>
-      <height>161</height>
+      <height>191</height>
      </rect>
     </property>
     <property name="title">
@@ -263,7 +218,7 @@
      <property name="geometry">
       <rect>
        <x>30</x>
-       <y>130</y>
+       <y>40</y>
        <width>261</width>
        <height>21</height>
       </rect>
@@ -276,7 +231,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>110</y>
+       <y>20</y>
        <width>281</width>
        <height>21</height>
       </rect>
@@ -285,89 +240,170 @@
       <string>Last changed 2023-99-99T23:59:59 by 'jank'</string>
      </property>
     </widget>
-    <widget class="QGroupBox" name="groupboxErrors">
+    <widget class="QGroupBox" name="groupboxWimErrors">
      <property name="geometry">
       <rect>
-       <x>310</x>
-       <y>20</y>
-       <width>371</width>
-       <height>71</height>
+       <x>520</x>
+       <y>10</y>
+       <width>161</width>
+       <height>81</height>
       </rect>
      </property>
      <property name="title">
-      <string>Photo Errors</string>
+      <string>WIM Labels</string>
      </property>
-     <widget class="QCheckBox" name="chkWrongLane">
+     <widget class="QCheckBox" name="chkGhostAxle">
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>20</y>
-        <width>81</width>
+        <y>50</y>
+        <width>70</width>
         <height>17</height>
        </rect>
       </property>
       <property name="text">
-       <string>Wrong lane</string>
+       <string>Ghost axle</string>
       </property>
      </widget>
-     <widget class="QCheckBox" name="chkWrongVehicle">
+     <widget class="QCheckBox" name="chkCrosstalk">
       <property name="geometry">
        <rect>
-        <x>130</x>
-        <y>20</y>
-        <width>91</width>
-        <height>17</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Wrong vehicle</string>
-      </property>
-     </widget>
-     <widget class="QCheckBox" name="chkOffLane">
-      <property name="geometry">
-       <rect>
-        <x>250</x>
+        <x>10</x>
         <y>20</y>
         <width>70</width>
         <height>17</height>
        </rect>
       </property>
       <property name="text">
-       <string>Off lane</string>
+       <string>Crosstalk</string>
       </property>
      </widget>
-     <widget class="QCheckBox" name="chkTruncatedFront">
+     <widget class="QCheckBox" name="chkVehicleSplit">
+      <property name="geometry">
+       <rect>
+        <x>100</x>
+        <y>20</y>
+        <width>41</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Split</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="chkVehicleJoined">
+      <property name="geometry">
+       <rect>
+        <x>100</x>
+        <y>50</y>
+        <width>51</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Joined</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="geometry">
+      <rect>
+       <x>310</x>
+       <y>10</y>
+       <width>131</width>
+       <height>81</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>General Labels</string>
+     </property>
+     <widget class="QCheckBox" name="chkInconsistentData">
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>40</y>
+        <y>50</y>
         <width>111</width>
         <height>17</height>
        </rect>
       </property>
       <property name="text">
-       <string>Photo trunc. front</string>
+       <string>Inconsistent data</string>
       </property>
      </widget>
-     <widget class="QCheckBox" name="chkTruncatedBack">
+     <widget class="QCheckBox" name="chkCannotLabel">
       <property name="geometry">
        <rect>
-        <x>130</x>
-        <y>40</y>
-        <width>111</width>
+        <x>10</x>
+        <y>20</y>
+        <width>101</width>
         <height>17</height>
        </rect>
       </property>
       <property name="text">
-       <string>Photo trunc. back</string>
+       <string>Cannot label</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QGroupBox" name="groupboxVehicleType">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>70</y>
+       <width>71</width>
+       <height>111</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>Vehicle Type</string>
+     </property>
+     <widget class="QRadioButton" name="radioIsATruck">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>50</y>
+        <width>61</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Truck</string>
+      </property>
+     </widget>
+     <widget class="QRadioButton" name="radioIsABus">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>20</y>
+        <width>61</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Bus</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QRadioButton" name="radioIsOther">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>80</y>
+        <width>51</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Other</string>
       </property>
      </widget>
     </widget>
     <widget class="QGroupBox" name="groupboxAxles">
      <property name="geometry">
       <rect>
-       <x>120</x>
-       <y>20</y>
+       <x>110</x>
+       <y>100</y>
        <width>171</width>
        <height>81</height>
       </rect>
@@ -422,124 +458,194 @@
       </property>
      </widget>
     </widget>
-    <widget class="QGroupBox" name="groupboxVehicleType">
+    <widget class="QGroupBox" name="groupboxErrors">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>20</y>
-       <width>71</width>
+       <x>310</x>
+       <y>100</y>
+       <width>371</width>
        <height>81</height>
       </rect>
      </property>
      <property name="title">
-      <string>Vehicle Type</string>
+      <string>Photo Labels</string>
      </property>
-     <widget class="QRadioButton" name="radioIsATruck">
+     <widget class="QCheckBox" name="chkWrongLane">
       <property name="geometry">
        <rect>
         <x>10</x>
         <y>50</y>
-        <width>61</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Truck</string>
-      </property>
-     </widget>
-     <widget class="QRadioButton" name="radioIsABus">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>20</y>
-        <width>61</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Bus</string>
-      </property>
-      <property name="checked">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </widget>
-    <widget class="QGroupBox" name="groupboxWimErrors">
-     <property name="geometry">
-      <rect>
-       <x>430</x>
-       <y>100</y>
-       <width>251</width>
-       <height>51</height>
-      </rect>
-     </property>
-     <property name="title">
-      <string>WIM errors</string>
-     </property>
-     <widget class="QCheckBox" name="chkGhostAxle">
-      <property name="geometry">
-       <rect>
-        <x>90</x>
-        <y>20</y>
-        <width>70</width>
-        <height>17</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Ghost axle</string>
-      </property>
-     </widget>
-     <widget class="QCheckBox" name="chkCrosstalk">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>20</y>
-        <width>70</width>
-        <height>17</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Crosstalk</string>
-      </property>
-     </widget>
-     <widget class="QCheckBox" name="chkVehicleHalved">
-      <property name="geometry">
-       <rect>
-        <x>170</x>
-        <y>20</y>
         <width>81</width>
         <height>17</height>
        </rect>
       </property>
       <property name="text">
-       <string>Veh. halved</string>
+       <string>Wrong lane</string>
       </property>
      </widget>
+     <widget class="QCheckBox" name="chkOffLane">
+      <property name="geometry">
+       <rect>
+        <x>110</x>
+        <y>50</y>
+        <width>70</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Off lane</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="chkPhotoTruncated">
+      <property name="geometry">
+       <rect>
+        <x>210</x>
+        <y>50</y>
+        <width>111</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Photo truncated</string>
+      </property>
+     </widget>
+     <widget class="QRadioButton" name="radioRed">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>20</y>
+        <width>41</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Red</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+      <attribute name="buttonGroup">
+       <string notr="true">buttonGroup</string>
+      </attribute>
+     </widget>
+     <widget class="QRadioButton" name="radioGrn">
+      <property name="geometry">
+       <rect>
+        <x>60</x>
+        <y>20</y>
+        <width>51</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Grn</string>
+      </property>
+      <attribute name="buttonGroup">
+       <string notr="true">buttonGroup</string>
+      </attribute>
+     </widget>
+     <widget class="QRadioButton" name="radioCyn">
+      <property name="geometry">
+       <rect>
+        <x>160</x>
+        <y>20</y>
+        <width>41</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Cyn</string>
+      </property>
+      <attribute name="buttonGroup">
+       <string notr="true">buttonGroup</string>
+      </attribute>
+     </widget>
+     <widget class="QRadioButton" name="radioBlu">
+      <property name="geometry">
+       <rect>
+        <x>110</x>
+        <y>20</y>
+        <width>41</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Blu</string>
+      </property>
+      <attribute name="buttonGroup">
+       <string notr="true">buttonGroup</string>
+      </attribute>
+     </widget>
+     <widget class="QRadioButton" name="radioMag">
+      <property name="geometry">
+       <rect>
+        <x>260</x>
+        <y>20</y>
+        <width>41</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Mag</string>
+      </property>
+      <attribute name="buttonGroup">
+       <string notr="true">buttonGroup</string>
+      </attribute>
+     </widget>
+     <widget class="QRadioButton" name="radioWht">
+      <property name="geometry">
+       <rect>
+        <x>310</x>
+        <y>20</y>
+        <width>41</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Wht</string>
+      </property>
+      <attribute name="buttonGroup">
+       <string notr="true">buttonGroup</string>
+      </attribute>
+     </widget>
+     <widget class="QRadioButton" name="radioYel">
+      <property name="geometry">
+       <rect>
+        <x>210</x>
+        <y>20</y>
+        <width>51</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Yel</string>
+      </property>
+      <attribute name="buttonGroup">
+       <string notr="true">buttonGroup</string>
+      </attribute>
+     </widget>
     </widget>
-    <widget class="QCheckBox" name="chkCannotLabel">
+   </widget>
+   <widget class="QGroupBox" name="groupboxComment">
+    <property name="geometry">
+     <rect>
+      <x>710</x>
+      <y>190</y>
+      <width>611</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Comment</string>
+    </property>
+    <widget class="QLineEdit" name="edtComment">
      <property name="geometry">
       <rect>
-       <x>320</x>
-       <y>110</y>
-       <width>101</width>
-       <height>17</height>
+       <x>10</x>
+       <y>20</y>
+       <width>591</width>
+       <height>21</height>
       </rect>
-     </property>
-     <property name="text">
-      <string>Cannot label</string>
-     </property>
-    </widget>
-    <widget class="QCheckBox" name="chkInconsistentData">
-     <property name="geometry">
-      <rect>
-       <x>320</x>
-       <y>130</y>
-       <width>111</width>
-       <height>17</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Inconsistent data</string>
      </property>
     </widget>
    </widget>
@@ -571,15 +677,13 @@
     <addaction name="separator"/>
     <addaction name="actionLoadADMPs"/>
     <addaction name="separator"/>
-    <addaction name="actionChangeVehicleType"/>
     <addaction name="actionWrongLane"/>
-    <addaction name="actionWrongVehicle"/>
     <addaction name="actionOffLane"/>
-    <addaction name="actionTruncatedFront"/>
-    <addaction name="actionTruncatedBack"/>
-    <addaction name="actionVehicleHalved"/>
+    <addaction name="actionPhotoTruncated"/>
     <addaction name="actionCrosstalk"/>
     <addaction name="actionGhostAxle"/>
+    <addaction name="actionVehicleSplit"/>
+    <addaction name="actionVehicleJoined"/>
     <addaction name="separator"/>
     <addaction name="actionCannotLabel"/>
     <addaction name="actionInconsistentData"/>
@@ -644,14 +748,6 @@
     <string>Alt+D</string>
    </property>
   </action>
-  <action name="actionChangeVehicleType">
-   <property name="text">
-    <string>Change Vehicle Type</string>
-   </property>
-   <property name="shortcut">
-    <string>Alt+C</string>
-   </property>
-  </action>
   <action name="actionWrongLane">
    <property name="text">
     <string>Wrong Lane</string>
@@ -660,44 +756,34 @@
     <string>Alt+L</string>
    </property>
   </action>
-  <action name="actionWrongVehicle">
-   <property name="text">
-    <string>Wrong Vehicle</string>
-   </property>
-   <property name="shortcut">
-    <string>Alt+V</string>
-   </property>
-  </action>
   <action name="actionOffLane">
    <property name="text">
     <string>Off Lane</string>
    </property>
-   <property name="shortcut">
-    <string>Alt+O</string>
-   </property>
-  </action>
-  <action name="actionTruncatedFront">
-   <property name="text">
-    <string>Truncated Front</string>
+   <property name="toolTip">
+    <string>Off lane</string>
    </property>
    <property name="shortcut">
     <string>Alt+F</string>
    </property>
   </action>
-  <action name="actionTruncatedBack">
+  <action name="actionPhotoTruncated">
    <property name="text">
-    <string>Truncated Back</string>
+    <string>Photo Truncated</string>
    </property>
    <property name="shortcut">
-    <string>Alt+B</string>
+    <string>Alt+U</string>
    </property>
   </action>
-  <action name="actionVehicleHalved">
+  <action name="actionVehicleSplit">
    <property name="text">
-    <string>Vehicle Halved</string>
+    <string>Vehicle Split</string>
+   </property>
+   <property name="toolTip">
+    <string>Vehicle Split</string>
    </property>
    <property name="shortcut">
-    <string>Alt+H</string>
+    <string>Alt+S</string>
    </property>
   </action>
   <action name="actionCannotLabel">
@@ -740,7 +826,18 @@
     <string>User Manual</string>
    </property>
   </action>
+  <action name="actionVehicleJoined">
+   <property name="text">
+    <string>Vehicle Joined</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+J</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="buttonGroup"/>
+ </buttongroups>
 </ui>

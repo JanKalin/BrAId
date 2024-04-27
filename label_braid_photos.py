@@ -9,6 +9,7 @@ import re
 import shutil
 import sys
 import tempfile
+import traceback
 
 import matplotlib
 matplotlib.use('Qt5Agg')
@@ -34,10 +35,10 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from locallib import pngpath, eventpath, load_metadata, save_metadata, beep
 
-#%% Parse args
+#%% Parse args and do simple initialisations
 
 parser = argparse.ArgumentParser(description="Interactively mark BrAId photos", fromfile_prefix_chars='@', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("--photo_root", help="Root for photos", default=r"B:\grouped_photos")
+parser.add_argument("--photo_root", help="Root for photos", default=r"B:\yolo_photos")
 parser.add_argument("--siwim_site", help="SiWIM site", default=r"AC_Sentvid_2012_2")
 parser.add_argument("--siwim_admp_data_root", help="Root for SiWIM ADMP data", default=r"S:\sites\original")
 parser.add_argument("--siwim_admp_rpindex", help="SiWIM ADMP replay index", default=40)
@@ -49,12 +50,18 @@ parser.add_argument("--data_dir", help="Data directory", default=os.path.join(SC
 parser.add_argument("--count", help="Count vehicles", action='store_true')
 parser.add_argument("--timeout", help="File write timeout in seconds", type=int, default=10)
 parser.add_argument("--batchsize", help="Batch size for better motivation :)", type=int, default=1000)
+parser.add_argument("--noseen_by", help="Do not change `seen_by` metadata. Used for checking", action='store_true')
 
 try:
     __IPYTHON__
-    args = parser.parse_args("--timeout 10".split())
+    args = parser.parse_args("".split())
 except:
     args = parser.parse_args()
+
+
+# Index to color and color to index
+i2c = ['r', 'g', 'b', 'c', 'y', 'm', 'w']
+c2i = {c: i for (i, c) in enumerate(i2c)}
 
 #%% Load data first and make datetime from timestamps
 
@@ -74,28 +81,27 @@ with open(os.path.join(args.data_dir, "vehicle2event.json")) as f:
     v2e = json.load(f)
 print("done.")
 
-rvs_lists = {'bus': {}, 'truck': {}}
+rvs_list = {}
 for rv in rvs_loaded:
     try:
-        rvs_lists[rv['vehicle_type']][rv['axle_groups']].append(rv)
+        rvs_list[rv['axle_groups']].append(rv)
     except:
-        rvs_lists[rv['vehicle_type']][rv['axle_groups']] = [rv]
+        rvs_list[rv['axle_groups']] = [rv]
 
 metadata_filename = os.path.join(args.data_dir, "metadata.hdf5")
 
 #%% Make batches
 
-rvs_batches = {'bus': {}, 'truck': {}}
+rvs_batches = {}
 maxbatches = 0
-for vehicle_type in rvs_lists:
-    for axle_groups in rvs_lists[vehicle_type]:
-        batches = len(rvs_lists[vehicle_type][axle_groups]) // args.batchsize + 1
-        maxbatches = max(maxbatches, batches)
-        if batches == 1:
-            rvs_batches[vehicle_type][axle_groups] = rvs_lists[vehicle_type][axle_groups]
-        else:
-            for batch in range(batches):
-                rvs_batches[vehicle_type][f"{axle_groups} [{batch + 1:02}/{batches:02}]"] = rvs_lists[vehicle_type][axle_groups][batch*args.batchsize:(batch+1)*args.batchsize]   
+for axle_groups in rvs_list:
+    batches = len(rvs_list[axle_groups]) // args.batchsize + 1
+    maxbatches = max(maxbatches, batches)
+    if batches == 1:
+        rvs_batches[axle_groups] = rvs_list[axle_groups]
+    else:
+        for batch in range(batches):
+            rvs_batches[f"{axle_groups} [{batch + 1:02}/{batches:02}]"] = rvs_list[axle_groups][batch*args.batchsize:(batch+1)*args.batchsize]   
 
 #%% Main window class and helper functions
 
@@ -129,6 +135,14 @@ class Window(QMainWindow, Ui_MainWindow):
         self.setWindowTitle(f"{self.windowTitle()}, user '{getpass.getuser()}'")
         self.connect_signals_slots()
 
+        self.segment = [self.radioRed,
+                        self.radioGrn,
+                        self.radioBlu,
+                        self.radioCyn,
+                        self.radioYel,
+                        self.radioMag,
+                        self.radioWht]
+        
         self.figureCanvasADMP = FigureCanvas(Figure(figsize=(5.5, 2)))
         self.layoutGraph.addWidget(self.figureCanvasADMP)
         self.fig = self.figureCanvasADMP.figure
@@ -143,33 +157,27 @@ class Window(QMainWindow, Ui_MainWindow):
         QApplication.instance().installEventFilter(self)
 
     def eventFilter(self, source, event):
-        if event.type() == QEvent.KeyPress and type(source) is QWindow:
+        if event.type() == QEvent.KeyPress and  QApplication.focusWidget() != self.edtComment and type(source) is QWindow:
             if event.key() == Qt.Key_D:
                 self.load_ADMPs()
                 return True
             elif event.key() == Qt.Key_B and not self.radioIsABus.isChecked():
                 self.set_vehicle_type('bus')
                 return True
-            elif event.key() == Qt.Key_T and self.radioIsABus.isChecked():
+            elif event.key() == Qt.Key_T and not self.radioIsATruck.isChecked():
                 self.set_vehicle_type('truck')
                 return True
-            elif event.key() == Qt.Key_C:
-                self.set_vehicle_type('truck' if self.radioIsABus.isChecked() else 'bus')
+            elif event.key() == Qt.Key_O and not self.radioIsOther.isChecked():
+                self.set_vehicle_type('other')
                 return True
             elif event.key() == Qt.Key_L:
                 self.chkWrongLane.setCheckState(0 if self.chkWrongLane.checkState() else 2)
                 return True
-            elif event.key() == Qt.Key_V:
-                self.chkWrongVehicle.setCheckState(0 if self.chkWrongVehicle.checkState() else 2)
-                return True
-            elif event.key() == Qt.Key_O:
+            elif event.key() == Qt.Key_F:
                 self.chkOffLane.setCheckState(0 if self.chkOffLane.checkState() else 2)
                 return True
-            elif event.key() == Qt.Key_F:
-                self.chkTruncatedFront.setCheckState(0 if self.chkTruncatedFront.checkState() else 2)
-                return True
-            elif event.key() == Qt.Key_B:
-                self.chkTruncatedBack.setCheckState(0 if self.chkTruncatedBack.checkState() else 2)
+            elif event.key() == Qt.Key_U:
+                self.chkPhotoTruncated.setCheckState(0 if self.chkPhotoTruncated.checkState() else 2)
                 return True
             elif event.key() == Qt.Key_H:
                 self.chkVehicleHalved.setCheckState(0 if self.chkVehicleHalved.checkState() else 2)
@@ -193,18 +201,17 @@ class Window(QMainWindow, Ui_MainWindow):
     def load_data(self, rvs_batches):
         self.rvs_batches = rvs_batches
         self.vehicle_count = {}
-        for (vehicle_type, entries) in rvs_batches.items():
-            counts = {}
-            for key, items in entries.items():
-                groups = key.split()[0]
-                count = len(items)
-                try:
-                    counts[groups]['count'] += count
-                    counts[groups]['keys'].append((key, count))
-                except KeyError:
-                    counts[groups] = {'count': count, 'keys': [(key, count)]}
-            order = sorted(counts.items(), key=lambda x: x[1]['count'], reverse=True)
-            self.vehicle_count[vehicle_type] = [y for x in order for y in x[1]['keys']]
+        counts = {}
+        for key, items in rvs_batches.items():
+            groups = key.split()[0]
+            count = len(items)
+            try:
+                counts[groups]['count'] += count
+                counts[groups]['keys'].append((key, count))
+            except KeyError:
+                counts[groups] = {'count': count, 'keys': [(key, count)]}
+        order = sorted(counts.items(), key=lambda x: x[1]['count'], reverse=True)
+        self.vehicle_count = [y for x in order for y in x[1]['keys']]
         self.load_cboxAxleGroups()  
 
     def connect_signals_slots(self):
@@ -215,7 +222,6 @@ class Window(QMainWindow, Ui_MainWindow):
         self.actionPicturePrevious.triggered.connect(self.previous_photo)
         self.actionLoadADMPs.triggered.connect(self.load_ADMPs)
 
-        self.radioSelectBusses.toggled.connect(self.load_cboxAxleGroups)
         self.cboxAxleGroups.currentIndexChanged.connect(self.setup_scrollbarPhoto)
         self.chkOnlyUnseen.toggled.connect(self.setup_scrollbarPhoto)
         self.scrollbarPhoto.valueChanged.connect(self.show_photo)
@@ -226,30 +232,36 @@ class Window(QMainWindow, Ui_MainWindow):
         
         self.radioIsABus.toggled.connect(lambda: self.set_vehicle_type('bus'))
         self.radioIsATruck.toggled.connect(lambda: self.set_vehicle_type('truck'))
-        self.actionChangeVehicleType.triggered.connect(lambda: self.set_vehicle_type('truck' if self.radioIsABus.isChecked() else 'bus'))
-        self.edtGroups.returnPressed.connect(self.set_groups)
+        self.radioIsOther.toggled.connect(lambda: self.set_vehicle_type('other'))
 
+        self.edtGroups.textEdited.connect(self.set_groups)
         self.edtRaised.setValidator(RaisedValidator(window=self))
-        self.edtRaised.returnPressed.connect(self.set_raised)
         self.edtRaised.textChanged.connect(self.check_raised)
+        self.edtComment.returnPressed.connect(self.set_comment)
             
+        self.radioRed.toggled.connect(lambda: self.set_segment(self.radioRed, 'r'))
+        self.radioGrn.toggled.connect(lambda: self.set_segment(self.radioGrn, 'g'))
+        self.radioBlu.toggled.connect(lambda: self.set_segment(self.radioBlu, 'b'))
+        self.radioCyn.toggled.connect(lambda: self.set_segment(self.radioCyn, 'c'))
+        self.radioYel.toggled.connect(lambda: self.set_segment(self.radioYel, 'y'))
+        self.radioMag.toggled.connect(lambda: self.set_segment(self.radioMag, 'm'))
+        self.radioWht.toggled.connect(lambda: self.set_segment(self.radioWht, 'w'))
+
         self.actionWrongLane.triggered.connect(lambda: self.toggle_checkbox(self.chkWrongLane))
-        self.actionWrongVehicle.triggered.connect(lambda: self.toggle_checkbox(self.chkWrongVehicle))
         self.actionOffLane.triggered.connect(lambda: self.toggle_checkbox(self.chkOffLane))
-        self.actionTruncatedFront.triggered.connect(lambda: self.toggle_checkbox(self.chkTruncatedFront))
-        self.actionTruncatedBack.triggered.connect(lambda: self.toggle_checkbox(self.chkTruncatedBack))
-        self.actionVehicleHalved.triggered.connect(lambda: self.toggle_checkbox(self.chkVehicleHalved))
+        self.actionPhotoTruncated.triggered.connect(lambda: self.toggle_checkbox(self.chkPhotoTruncated))
+        self.actionVehicleSplit.triggered.connect(lambda: self.toggle_checkbox(self.chkVehicleSplit))
+        self.actionVehicleJoined.triggered.connect(lambda: self.toggle_checkbox(self.chkVehicleJoined))
         self.actionCrosstalk.triggered.connect(lambda: self.toggle_checkbox(self.chkCrosstalk))
         self.actionGhostAxle.triggered.connect(lambda: self.toggle_checkbox(self.chkGhostAxle))
         self.actionInconsistentData.triggered.connect(lambda: self.toggle_checkbox(self.chkInconsistentData))
         self.actionCannotLabel.triggered.connect(lambda: self.toggle_checkbox(self.chkCannotLabel))
         
         self.chkWrongLane.stateChanged.connect(lambda: self.set_error(self.chkWrongLane, 'wrong_lane'))
-        self.chkWrongVehicle.stateChanged.connect(lambda: self.set_error(self.chkWrongVehicle, 'wrong_vehicle'))
         self.chkOffLane.stateChanged.connect(lambda: self.set_error(self.chkOffLane, 'off_lane'))
-        self.chkTruncatedFront.stateChanged.connect(lambda: self.set_error(self.chkTruncatedFront, 'truncated_front'))
-        self.chkTruncatedBack.stateChanged.connect(lambda: self.set_error(self.chkTruncatedBack, 'truncated_back'))
-        self.chkVehicleHalved.stateChanged.connect(lambda: self.set_error(self.chkVehicleHalved, 'vehicle_halved'))
+        self.chkPhotoTruncated.stateChanged.connect(lambda: self.set_error(self.chkPhotoTruncated, 'photo_truncated'))
+        self.chkVehicleSplit.stateChanged.connect(lambda: self.set_error(self.chkVehicleSplit, 'vehicle_split'))
+        self.chkVehicleJoined.stateChanged.connect(lambda: self.set_error(self.chkVehicleJoined, 'vehicle_joined'))
         self.chkCrosstalk.stateChanged.connect(lambda: self.set_error(self.chkCrosstalk, 'crosstalk'))
         self.chkGhostAxle.stateChanged.connect(lambda: self.set_error(self.chkGhostAxle, 'ghost_axle'))
         self.chkInconsistentData.stateChanged.connect(lambda: self.set_error(self.chkInconsistentData, 'inconsistent_data'))
@@ -261,7 +273,7 @@ class Window(QMainWindow, Ui_MainWindow):
             "About BrAId photo labeller",
             "<p>A simple utility to check and manually label AI labelled photos</p>"
             "<p>Jan Kalin &lt;jan.kalin@zag.si&gt;</p>"
-            "<p>v1.1, 27. March 2024</p>"
+            "<p>v1.3, 27. April 2024</p>"
         )
 
     def shortcuts(self):
@@ -277,13 +289,13 @@ class Window(QMainWindow, Ui_MainWindow):
             <tr><th>Shortcut</th><th>Action</th></tr>
             <tr><td><kbd>B</kbd></td><td>Set vehicle type to <tt>bus</tt></td></tr>
             <tr><td><kbd>T</kbd></td><td>Set vehicle type to <tt>truck</tt></td></tr>
-            <tr><td><kbd>C</kbd></td><td>Toggle vehicle type: <tt>bus &lt;--&gt; truck</tt></tr>
+            <tr><td><kbd>O</kbd></td><td>Set vehicle type to <tt>other</tt></td></tr>
             <tr><td><kbd>L</kbd></td><td>Wrong Lane</td></tr>
             <tr><td><kbd>V</kbd></td><td>Wrong Vehicle</td></tr>
-            <tr><td><kbd>O</kbd></td><td>Off Lane</td></tr>
-            <tr><td><kbd>F</kbd></td><td>Truncated Front</td></tr>
-            <tr><td><kbd>B</kbd></td><td>Truncated Back</td></tr>
-            <tr><td><kbd>H</kbd></td><td>Vehicle Split</td></tr>
+            <tr><td><kbd>F</kbd></td><td>Off Lane</td></tr>
+            <tr><td><kbd>U</kbd></td><td>Photo Truncated</td></tr>
+            <tr><td><kbd>S</kbd></td><td>Vehicle Split in Half</td></tr>
+            <tr><td><kbd>J</kbd></td><td>Two Vehicles Joined</td></tr>
             <tr><td><kbd>R</kbd></td><td>Crosstalk</td></tr>
             <tr><td><kbd>G</kbd></td><td>Ghost Axle</td></tr>
             <tr><td><kbd>I</kbd></td><td>Inconsistent data</td></tr>
@@ -307,16 +319,12 @@ that you stop working now and investigate the cause of problems!""")
         beep()
         self.groupboxLabel.setTitle("Label: FILESYSTEM PROBLEMS!")
     
-    def vehicle_type(self):
-        """Returns vehicle type, read from radio buttons"""
-        return 'bus' if self.radioSelectBusses.isChecked() else 'truck'
-    
     def axle_groups(self):
         """Returns axle groups, read from combo box"""
         if not self.cboxAxleGroups.currentIndex():
             return None
         else:
-            return self.vehicle_count[self.vehicle_type()][self.cboxAxleGroups.currentIndex() - 1][0]
+            return self.vehicle_count[self.cboxAxleGroups.currentIndex() - 1][0]
         
     def photo_id(self):
         """Returns the photo slider position (photo index)"""
@@ -331,15 +339,14 @@ that you stop working now and investigate the cause of problems!""")
         """Loads combo box with groups and count of busses or trucks"""
         self.cboxAxleGroups.clear()
         self.cboxAxleGroups.addItem("--select--")
-        self.cboxAxleGroups.addItems([f"{groups} ({count})" for groups, count in
-                                      self.vehicle_count[self.vehicle_type()]])
+        self.cboxAxleGroups.addItems([f"{groups} ({count})" for groups, count in self.vehicle_count])
 
     def setup_scrollbarPhoto(self):
         """Sets up scroll bar for photo selection and shows the first photo"""
         try:
             QApplication.setOverrideCursor(Qt.WaitCursor)
             try:
-                self.selected = [x for x in self.rvs_batches[self.vehicle_type()][self.axle_groups()]
+                self.selected = [x for x in self.rvs_batches[self.axle_groups()]
                                  if not self.chkOnlyUnseen.isChecked() or not load_metadata(x, metadata_filename, seen_by=True)]
                 self.scrollbarPhoto.setMaximum(len(self.selected) - 1)
                 self.scrollbarPhoto.setValue(0)
@@ -368,7 +375,7 @@ that you stop working now and investigate the cause of problems!""")
                 self.metadata = None
                 if self.scrollbarPhoto.sliderPosition() == -1:
                     self.groupboxPhoto.setTitle(f"Photo 0/{self.scrollbarPhoto.maximum() + 1}"
-                                                + (f" ({len(rvs_batches[self.vehicle_type()][self.axle_groups()]) - len(self.selected)} already seen)" if self.chkOnlyUnseen.isChecked() else ""))
+                                                + (f" ({len(rvs_batches[self.axle_groups()]) - len(self.selected)} already seen)" if self.chkOnlyUnseen.isChecked() else ""))
                 else:
                     self.groupboxPhoto.setTitle("Photo")
             else:
@@ -386,18 +393,18 @@ that you stop working now and investigate the cause of problems!""")
                     self.last_seen_by = self.metadata['seen_by']
                 except:
                     self.last_seen_by = None
-                self.metadata['seen_by'] = (datetime.datetime.now().timestamp(), getpass.getuser())
-                try:
-                    save_metadata(self.rv, self.metadata, metadata_filename, timeout=args.timeout)
-                except RuntimeError as err:
-                    self.metadata_file_error(err)
-                self.show_metadata()
+                if not args.noseen_by:
+                    self.metadata['seen_by'] = (datetime.datetime.now().timestamp(), getpass.getuser())
+                    try:
+                        save_metadata(self.rv, self.metadata, metadata_filename, timeout=args.timeout)
+                    except RuntimeError as err:
+                        self.metadata_file_error(err)
                 try:
                     changed = ", CHANGED" if self.metadata['changed_by'] else ", ORIGINAL"
                 except:
                     pass
                 self.groupboxPhoto.setTitle(f"Photo {self.scrollbarPhoto.sliderPosition() + 1}/{self.scrollbarPhoto.maximum() + 1}"
-                                            + (f" ({len(rvs_batches[self.vehicle_type()][self.axle_groups()]) - len(self.selected)} already seen)" if self.chkOnlyUnseen.isChecked() else "")
+                                            + (f" ({len(rvs_batches[self.axle_groups()]) - len(self.selected)} already seen)" if self.chkOnlyUnseen.isChecked() else "")
                                             + f", ts: {datetime2ts(self.rv['vehicle_timestamp'])}"
                                             + f", photo id: {self.rv['photo_id']}"
                                             + f"{changed}")
@@ -412,7 +419,6 @@ that you stop working now and investigate the cause of problems!""")
         """Shows metadata in the 'Label' group box
         First sets self.updating_metadata = True to prevent any loops and stuff
         """
-        
         def frmt(t):
             return t.strftime('on %a, %d. %b %Y at %H:%M:%S')
         
@@ -437,16 +443,6 @@ that you stop working now and investigate the cause of problems!""")
                 except (KeyError, IndexError, TypeError):
                     self.lblLastChanged.setText("")
                 
-                #  Vehicle type
-                try:
-                    vehicle_type = self.metadata['vehicle_type']
-                except:
-                    vehicle_type = self.rv['vehicle_type']
-                if vehicle_type == 'bus' and not self.radioIsABus.isChecked():
-                    self.radioIsABus.setChecked(True)
-                elif vehicle_type == 'truck' and not self.radioIsATruck.isChecked():
-                    self.radioIsATruck.setChecked(True)
-                    
                 # Axle groups and raised
                 try:
                     self.edtGroups.setText(self.metadata['axle_groups'])
@@ -457,31 +453,38 @@ that you stop working now and investigate the cause of problems!""")
                 except:
                     self.edtRaised.setText("")
                     
+                # Selected
+                try:
+                    segment = self.metadata['segment']
+                except:
+                    segment = 'r'
+                colors = [x['box']['color'] for x in self.rv['segments']]
+                for idx in range(len(self.segment)):
+                    self.segment[idx].setVisible(i2c[idx] in colors)
+                    self.segment[idx].setChecked(i2c[idx] == segment)
+                    
+                #  Vehicle type
+                self.set_vehicle_type_radio_button()
+                
+                # Comment
+                try:
+                    self.edtComment.setText(self.metadata['comment'])
+                except:
+                    self.edtComment.setText("")
+                    
                 # Errors
                 try:
                     self.chkWrongLane.setCheckState(self.metadata['errors']['wrong_lane'])
                 except:
                     self.chkWrongLane.setCheckState(False)
                 try:
-                    self.chkWrongVehicle.setCheckState(self.metadata['errors']['wrong_vehicle'])
-                except:
-                    self.chkWrongVehicle.setCheckState(False)
-                try:
                     self.chkOffLane.setCheckState(self.metadata['errors']['off_lane'])
                 except:
                     self.chkOffLane.setCheckState(False)
                 try:
-                    self.chkTruncatedFront.setCheckState(self.metadata['errors']['truncated_front'])
+                    self.chkPhotoTruncated.setCheckState(self.metadata['errors']['photo_truncated'])
                 except:
-                    self.chkTruncatedFront.setCheckState(False)
-                try:
-                    self.chkTruncatedBack.setCheckState(self.metadata['errors']['truncated_back'])
-                except:
-                    self.chkTruncatedBack.setCheckState(False)
-                try:
-                    self.chkVehicleHalved.setCheckState(self.metadata['errors']['vehicle_halved'])
-                except:
-                    self.chkVehicleHalved.setCheckState(False)
+                    self.chkPhotoTruncated.setCheckState(False)
                 try:
                     self.chkCrosstalk.setCheckState(self.metadata['errors']['crosstalk'])
                 except:
@@ -491,12 +494,46 @@ that you stop working now and investigate the cause of problems!""")
                 except:
                     self.chkGhostAxle.setCheckState(False)
                 try:
+                    self.chkVehicleSplit.setCheckState(self.metadata['errors']['vehicle_split'])
+                except:
+                    self.chkVehicleSplit.setCheckState(False)
+                try:
+                    self.chkVehicleJoined.setCheckState(self.metadata['errors']['vehicle_joined'])
+                except:
+                    self.chkVehicleJoined.setCheckState(False)
+                try:
                     self.chkCannotLabel.setCheckState(self.metadata['errors']['cannot_label'])
                 except:
                     self.chkCannotLabel.setCheckState(False)
+                try:
+                    self.chkInconsistentData.setCheckState(self.metadata['errors']['inconsistent_data'])
+                except:
+                    self.chkInconsistentData.setCheckState(False)
+                    
         finally:
             self.updating_metadata = False
             
+    def set_vehicle_type_radio_button(self):
+        """Sets vehicle type radio button"""
+        try:
+            segment = self.metadata['segment']
+            raise
+        except:
+            try:
+                segment = self.rv['segment']
+            except:
+                segment = 'r'
+        try:
+            vehicle_type = self.metadata['vehicle_type']
+        except:
+            vehicle_type = self.rv['segments'][c2i[segment]]['type']
+        if vehicle_type == 'bus' and not self.radioIsABus.isChecked():
+            self.radioIsABus.setChecked(True)
+        elif vehicle_type == 'truck' and not self.radioIsATruck.isChecked():
+            self.radioIsATruck.setChecked(True)
+        elif vehicle_type == 'other' and not self.radioIsOther.isChecked():
+            self.radioIsOther.setChecked(True)
+        
     def set_chkAutoLoadADMPs(self):
         """Perhaps clears ADMPs"""
         self.load_ADMPs(force_clear=not self.chkAutoLoadADMPs.isChecked())
@@ -599,15 +636,21 @@ that you stop working now and investigate the cause of problems!""")
         return groups2str(tuple(groups))
     
     def check_raised(self):
+        """Checks if the raised is OK and sets groups if it is"""
         sender = self.sender()
         validator = sender.validator()
         state = validator.validate(sender.text(), 0)[0]
         if state == QValidator.Acceptable:
             color = '#ffffff' # white
-            self.edtGroups.setText(self.groups_from_raised(sender.text(), self.rv['axle_groups']))
+            if not(self.updating_metadata or self.rv == None):
+                self.edtGroups.setText(self.groups_from_raised(sender.text(), self.rv['axle_groups']))
+                self.metadata['raised_axles'] = self.edtRaised.text()
+                self.metadata['axle_groups'] = self.edtGroups.text()
+                self.save_changed_metadata()
         elif state == QValidator.Intermediate:
             color = '#fff79a' # yellow
-            self.edtGroups.setText(self.groups_from_raised("", self.rv['axle_groups']))
+            if not(self.updating_metadata or self.rv == None):
+                self.edtGroups.setText(self.groups_from_raised("", self.rv['axle_groups']))
         else:
             color = '#f6989d' # red
         sender.setStyleSheet('QLineEdit { background-color: %s }' % color)        
@@ -624,6 +667,19 @@ that you stop working now and investigate the cause of problems!""")
         """Helper function for toggling checkboxes with actions"""
         widget.setCheckState(0 if widget.isChecked() else 2)
         
+    def set_segment(self, radio, color):
+        """Sets segment"""
+        if self.updating_metadata or self.rv == None:
+            return
+        # if not radio.isChecked():
+        #     return
+        self.metadata['segment'] = color
+        self.save_changed_metadata()
+        self.updating_metadata = True
+        self.set_vehicle_type_radio_button()
+        self.updating_metadata = False
+        
+
     def set_error(self, widget, name):
         """Sets one of the error flags"""
         if self.updating_metadata or self.rv == None:
@@ -634,19 +690,26 @@ that you stop working now and investigate the cause of problems!""")
             self.metadata['errors'] = {}
         self.metadata['errors'][name] = widget.checkState()
         self.save_changed_metadata()
-                
-           
+    
+    def set_comment(self):
+        if self.updating_metadata or self.rv == None:
+            return
+        self.metadata['comment'] = self.edtComment.text()
+        self.save_changed_metadata()
+        self.setFocus()
+        
+
+
 # Load window and run main loop    
         
 app = QApplication(sys.argv)
 win = Window()
 
 win.load_data(rvs_batches)
+
 # DEBUG
-win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 1)
+# win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 46)
 
 win.show()
 sys.exit(app.exec())
-
-
 

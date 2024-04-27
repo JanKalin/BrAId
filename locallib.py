@@ -10,10 +10,10 @@ Created on Wed Mar 13 12:00:50 2024
 import datetime
 import getpass
 import json
-import math
 import os
 import sys
 import time
+import traceback
 import winsound
 
 import h5py
@@ -28,7 +28,7 @@ from swm.utils import datetime2ts
 
 def pngpath(root, v):
     """Returns path for PNG file"""
-    return os.path.join(root, v['vehicle_type'], v['axle_groups'], f"{v['photo_id']}-{v['vehicle_type']}-{v['axle_groups']}-{math.floor(v['type_probability']):.0f}.png")
+    return os.path.join(root, f"{v['photo_id'] // 1000}", f"{v['photo_id']}.png")
 
 def event_timestamp(v, v2e):
     """Returns event timestamp from vehicle and v2e dict"""
@@ -46,7 +46,7 @@ def load_metadata(rv, filename, exists=False, seen_by=False):
     """
     try:
         with h5py.File(filename, 'r') as f:
-            result = json.loads(f[f"{rv['vehicle_type']}/{rv['axle_groups']}/{rv['photo_id']}"].asstr()[()])
+            result = json.loads(f[f"{rv['axle_groups']}/{rv['photo_id']}"].asstr()[()])
             if exists:
                 return True
             elif seen_by:
@@ -75,9 +75,9 @@ def save_metadata(rv, metadata, filename, timeout=None):
                 else:
                     raise RuntimeError(filename)
         try:
-            grp = f.require_group(f"{rv['vehicle_type']}/{rv['axle_groups']}")
+            grp = f.require_group(f"{rv['axle_groups']}")
         except TypeError:
-            grp = f[f"{rv['vehicle_type']}/{rv['axle_groups']}"]
+            grp = f[f"{rv['axle_groups']}"]
         try:
             grp[str(rv['photo_id'])] = json.dumps(metadata)
         except:
