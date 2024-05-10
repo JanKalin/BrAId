@@ -22,6 +22,12 @@ from PyQt5.QtCore import Qt, QEvent, QSize
 from PyQt5.QtGui import QPixmap, QWindow, QValidator
 from PyQt5.QtWidgets import  QApplication, QMainWindow, QMessageBox
 
+if hasattr(Qt, 'AA_EnableHighDpiScaling'):
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+
+if hasattr(Qt, 'AA_UseHighDpiPixmaps'):
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(os.path.dirname(SCRIPT_DIR), 'siwim-pi'))
 sys.path.append(os.path.join(os.path.dirname(SCRIPT_DIR), '..', 'siwim-pi'))
