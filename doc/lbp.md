@@ -4,6 +4,11 @@
 
 Jan Kalin <jan.kalin@zag.si>
 
+v1.4, 10. maj 2024
+
+- Premešan interface, sedaj se slika veča z oknom
+- 
+
 v1.3, 27. april 2024
 
 - Predelava za novo označevanje (brez grupiranja v avtobuse in tovornjake)
@@ -83,6 +88,33 @@ potem pa se pojavi glavno okno aplikacije.
 Konzole ne zapirajte, saj se s tem zapre tudi glavno okno.  V konzoli se tudi izpišejo nekatere napake pri izvajanju (recimo da neke datoteke ne more najti), pa tudi, če pride do kakšne napake pri samem izvajanju aplikacije.
 
 Če se zgodi to, prosim avtorju pošljite screenshot konzole in opis tega, kaj ste delali, ko je do napake prišlo.
+
+#### Zagon aplikacije z ročnim odpiranjem konzole
+
+Težava pri zaganjanju z dvoklikom na `.py` datoteko je, da se pri napaki v aplikaciji zapre tudi konzola, s tem pa tudi izgine informacija o napaki. TBD je prestrezanje takšnih napak, vendar to ni najlažje.
+
+Zato je bolje aplikacijo zagnati tako, da se konzolo ročno odpre —  [10 načinov kako se zažene konzolo](https://www.howtogeek.com/235101/10-ways-to-open-the-command-prompt-in-windows-10/) — potem pa v konzoli vtipka sledeče vrstice in vsako zaključi z  `<ENTER>` :
+
+- `M:`
+- `cd \disk_600_konstrukcije\JanK\braid_photo`
+- `python label_braid_photos.py`
+
+Pri napaki se bo izpisal t.i. *stack trace* — spisek klicev funkcij in vrstic kje je šlo kaj narobe.  Primer:
+````
+M:\disk_600_konstrukcije\JanK\braid_photo>python label_braid_photos.py
+Loading recognized_vehicles.json, Traceback (most recent call last):
+  File "M:\disk_600_konstrukcije\JanK\braid_photo\label_braid_photos.py", line 71, in <module>
+    rvs_loaded = json.load(f)
+  File "C:\Python39\lib\json\__init__.py", line 293, in load
+    return loads(fp.read(),
+OSError: [Errno 22] Invalid argument
+
+M:\disk_600_konstrukcije\JanK\braid_photo>
+````
+
+To prosim prekopirajte — tekst se označi s potegom z miške s pritisnjeno leve tipko in spravi na clipboard s tipko `<Enter>` — in pošljite avtorju.
+
+Potem lahko aplikacijo zoper poženete z `<Up-Arrow>` in `<Enter>`.
 
 ### Glavno okno
 

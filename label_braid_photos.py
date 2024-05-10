@@ -18,7 +18,7 @@ import matplotlib.dates as mdates
 from matplotlib.figure import Figure
 import numpy as np
 
-from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtCore import Qt, QEvent, QSize
 from PyQt5.QtGui import QPixmap, QWindow, QValidator
 from PyQt5.QtWidgets import  QApplication, QMainWindow, QMessageBox
 
@@ -148,13 +148,21 @@ class Window(QMainWindow, Ui_MainWindow):
         self.fig = self.figureCanvasADMP.figure
         self.fig.tight_layout()
         self.locator = mdates.AutoDateLocator()
-        self.formatter = mdates.ConciseDateFormatter(self.locator, offset_formats=['', '%Y', '%Y-%m', '%Y-%m-%d', '%Y-%m-%d', '%Y-%m-%d %H:%M'])
+        # self.formatter = mdates.ConciseDateFormatter(self.locator, offset_formats=['', '%Y', '%Y-%m', '%Y-%m-%d', '%Y-%m-%d', '%Y-%m-%d %H:%M'])
+        self.formatter = mdates.DateFormatter("")
         
         self.lblLastSeen.setText("")
         self.lblLastChanged.setText("")
         self.updating_metadata = False
         
         QApplication.instance().installEventFilter(self)
+        
+        self.D_main_groupboxPhoto = (self.geometry().width() - self.groupboxPhoto.geometry().width(), 
+                                     self.geometry().height() - self.groupboxPhoto.geometry().height())
+        self.D_groupboxPhoto_scrollbarPhoto = (self.groupboxPhoto.geometry().width() - self.scrollbarPhoto.geometry().left(), 
+                                               self.groupboxPhoto.geometry().height() - self.scrollbarPhoto.geometry().height())
+        self.D_groupboxPhoto_lblPhoto = (self.groupboxPhoto.geometry().width() - self.lblPhoto.geometry().width(), 
+                                         self.groupboxPhoto.geometry().height() - self.lblPhoto.geometry().height())
 
     def eventFilter(self, source, event):
         if event.type() == QEvent.KeyPress and  QApplication.focusWidget() != self.edtComment and type(source) is QWindow:
@@ -267,13 +275,38 @@ class Window(QMainWindow, Ui_MainWindow):
         self.chkInconsistentData.stateChanged.connect(lambda: self.set_error(self.chkInconsistentData, 'inconsistent_data'))
         self.chkCannotLabel.stateChanged.connect(lambda: self.set_error(self.chkCannotLabel, 'cannot_label'))
         
+    def resizeEvent(self, event):
+        """Called when main window size changes, resizes groupboxPhoto and
+        contents"""
+        if event.oldSize() == QSize(-1, -1):
+            return
+        
+        geometry = self.groupboxPhoto.geometry()
+        geometry.setWidth(event.size().width() - self.D_main_groupboxPhoto[0])
+        geometry.setHeight(event.size().height() - self.D_main_groupboxPhoto[1])
+        self.groupboxPhoto.setGeometry(geometry)
+        
+        geometry = self.scrollbarPhoto.geometry()
+        geometry.moveLeft(self.groupboxPhoto.geometry().width() - self.D_groupboxPhoto_scrollbarPhoto[0])
+        geometry.setHeight(self.groupboxPhoto.geometry().height() - self.D_groupboxPhoto_scrollbarPhoto[1])
+        self.scrollbarPhoto.setGeometry(geometry)
+        
+        geometry = self.lblPhoto.geometry()
+        geometry.setWidth(self.groupboxPhoto.geometry().width() - self.D_groupboxPhoto_lblPhoto[0])
+        geometry.setHeight(self.groupboxPhoto.geometry().height() - self.D_groupboxPhoto_lblPhoto[1])
+        self.lblPhoto.setGeometry(geometry)
+        
+        if self.rv != None:
+            self.lblPhoto.setPixmap(self.pixmap.scaled(self.lblPhoto.geometry().width(), self.lblPhoto.geometry().height(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+
     def about(self):
         QMessageBox.about(
             self,
             "About BrAId photo labeller",
             "<p>A simple utility to check and manually label AI labelled photos</p>"
             "<p>Jan Kalin &lt;jan.kalin@zag.si&gt;</p>"
-            "<p>v1.3, 27. April 2024</p>"
+            "<p>v1.4, 10. May 2024</p>"
         )
 
     def shortcuts(self):
@@ -386,8 +419,8 @@ that you stop working now and investigate the cause of problems!""")
                     beep()
                     self.metadata = None
                     return
-                pixmap = QPixmap(filename)
-                self.lblPhoto.setPixmap(pixmap)
+                self.pixmap = QPixmap(filename)
+                self.lblPhoto.setPixmap(self.pixmap.scaled(self.lblPhoto.geometry().width(), self.lblPhoto.geometry().height(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
                 self.metadata = load_metadata(self.rv, metadata_filename)
                 try:
                     self.last_seen_by = self.metadata['seen_by']
@@ -420,7 +453,7 @@ that you stop working now and investigate the cause of problems!""")
         First sets self.updating_metadata = True to prevent any loops and stuff
         """
         def frmt(t):
-            return t.strftime('on %a, %d. %b %Y at %H:%M:%S')
+            return t.strftime('%a, %d. %b %Y at %H:%M:%S')
         
         try:
             self.updating_metadata = True
@@ -435,11 +468,11 @@ that you stop working now and investigate the cause of problems!""")
                 except (KeyError, IndexError, TypeError):
                     at = 'now'
                     by = getpass.getuser()
-                self.lblLastSeen.setText(f"Last seen {at} by '{by}'")
+                self.lblLastSeen.setText(f"Seen: {at} '{by}'")
                 try:
                     at = frmt(datetime.datetime.fromtimestamp(self.metadata['changed_by'][0]))
                     by = self.metadata['changed_by'][1]
-                    self.lblLastChanged.setText(f" Last changed {at} by '{by}'")
+                    self.lblLastChanged.setText(f"Chng: {at} '{by}'")
                 except (KeyError, IndexError, TypeError):
                     self.lblLastChanged.setText("")
                 
@@ -708,7 +741,7 @@ win = Window()
 win.load_data(rvs_batches)
 
 # DEBUG
-# win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 46)
+win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 46)
 
 win.show()
 sys.exit(app.exec())
