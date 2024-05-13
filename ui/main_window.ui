@@ -70,7 +70,7 @@
     <widget class="QPushButton" name="btnShowPhoto">
      <property name="geometry">
       <rect>
-       <x>110</x>
+       <x>20</x>
        <y>20</y>
        <width>101</width>
        <height>23</height>
@@ -80,23 +80,10 @@
       <string>Show in viewer</string>
      </property>
     </widget>
-    <widget class="QCheckBox" name="chkOnlyUnseen">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>20</y>
-       <width>81</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Only unseen</string>
-     </property>
-    </widget>
     <widget class="QLineEdit" name="edtJumpToPhoto">
      <property name="geometry">
       <rect>
-       <x>600</x>
+       <x>630</x>
        <y>20</y>
        <width>51</width>
        <height>21</height>
@@ -106,7 +93,7 @@
     <widget class="QPushButton" name="btnJumpToPhoto">
      <property name="geometry">
       <rect>
-       <x>504</x>
+       <x>530</x>
        <y>20</y>
        <width>91</width>
        <height>23</height>
@@ -114,6 +101,19 @@
      </property>
      <property name="text">
       <string>Jump to photo</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chkZoom">
+     <property name="geometry">
+      <rect>
+       <x>310</x>
+       <y>20</y>
+       <width>51</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Zoom</string>
      </property>
     </widget>
    </widget>
@@ -150,6 +150,22 @@
        <width>141</width>
        <height>21</height>
       </rect>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chkOnlyUnseen">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="geometry">
+      <rect>
+       <x>270</x>
+       <y>30</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Only unseen</string>
      </property>
     </widget>
    </widget>

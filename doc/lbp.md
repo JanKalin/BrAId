@@ -4,9 +4,13 @@
 
 Jan Kalin <jan.kalin@zag.si>
 
-v1.4, 13. maj 2024
+v1.6, 14. maj 2024
 
-- Dodan gump *Jump to photo* za hitro izbiro fotografije
+- Dodana funkcija *Zoom*
+
+v1.5, 13. maj 2024
+
+- Dodan gumb *Jump to photo* za hitro izbiro fotografije
 
 v1.4, 10. maj 2024
 
@@ -135,7 +139,7 @@ Tukaj se izbere množico vozil za označevanje. Struktura podatkov o slikah je b
 
 Velike množice vozil (npr., tovornjaki s skupinami 113) so razdeljene na podmnožice moči 1000. S tem je lažje načrtovati in razdeliti obdelavo med več ljudi, saj je obdelovanje različnih podmnožic varno. Hkrati pa predvidevamo, da 1000 vozil predstavlja za približno uro dela, če predpostavimo 3.6 sekunde za povprečen pregled in morebitni popravek enega vozila. V tem primeru so vnosi v polju *Axle groups:* oblike, npr., `113 [02/13] (1000)`, kar pomeni druga podmnožica (z močjo 1000) izmed 13 podmnožic vozil s skupinami 113.
 
-Potrditveno polje *Only unseen* omogoča nalaganje samo tistih slik, ki jih še noben ni videl.
+Potrditveno polje *Only unseen* omogoča nalaganje samo tistih slik, ki jih še noben ni videl. Trenutno je ta možnost onemogočena, ker zmeša oštevilčenje slik. Ponovno bo omogočena skupaj z možnostjo *Only with comments*.
 
 Ko je slika naložena, jo je možno s klikom na *Show photo in viewer* naložiti v eksterni pregledovalnik slik.
 
@@ -162,6 +166,14 @@ Ko se izbere skupine osi, se v razdelku *Photo* takoj pojavi prva fotografija zn
 V imenu razdelka je napisana zaporedna številka vozila, število vseh vozil, timestamp vozila, ID fotografije ter *ORIGINAL*, če oznake slike niso bile spremenjene ali `CHANGED`, če so bile. Na vrhu razdelka je izpisano uporabniško ime zadnjega, ki je fotografijo videl ter, če so bile oznake spremenjene, ime uporabnika, ki je zadnji spreminjal oznake.
 
 Slike se lahko izbira s puščico gor — `<Up>` ali dol — `<Down>`.  Lahko pa tudi s klikanjem na drsni trak poleg slike.
+
+Za lažjo izbiro slike je možno vpisati številko slike v vnosno polje zgoraj desno in s pritiskom na tipko *Jump to photo* neposredno izbrati to sliko.
+
+Možno je tudi zožiti pogled (Zoom) na okvirček. To se naredi s klikom na izbiro polje *Zoom* ali z bližnjico `<Z>`. Če se spremeni izbira barve oznake, se spremeni tudi pogled. Primera sta na naslednjih slikah:
+
+![photo](zoomed1.png)
+
+![photo](zoomed2.png)
 
 #### Nastavljanje oznak
 

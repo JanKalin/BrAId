@@ -1,3 +1,5 @@
+__version__ = 1.6
+
 ### Import stuff
 
 import argparse
@@ -9,7 +11,6 @@ import re
 import shutil
 import sys
 import tempfile
-import traceback
 
 import matplotlib
 matplotlib.use('Qt5Agg')
@@ -138,7 +139,7 @@ class Window(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
-        self.setWindowTitle(f"{self.windowTitle()}, user '{getpass.getuser()}'")
+        self.setWindowTitle(f"{self.windowTitle()} v{__version__}, user '{getpass.getuser()}'")
         self.connect_signals_slots()
 
         self.segment = [self.radioRed,
@@ -208,6 +209,10 @@ class Window(QMainWindow, Ui_MainWindow):
             elif event.key() == Qt.Key_N:
                 self.chkCannotLabel.setCheckState(0 if self.chkCannotLabel.checkState() else 2)
                 return True
+            elif event.key() == Qt.Key_Z:
+                self.chkZoom.setCheckState(0 if self.chkZoom.checkState() else 2)
+                self.show_photo()
+                return True
             else:
                 pass
         return super().eventFilter(source, event)
@@ -238,12 +243,13 @@ class Window(QMainWindow, Ui_MainWindow):
 
         self.cboxAxleGroups.currentIndexChanged.connect(self.setup_scrollbarPhoto)
         self.chkOnlyUnseen.toggled.connect(self.setup_scrollbarPhoto)
-        self.scrollbarPhoto.valueChanged.connect(self.show_photo)
+        self.scrollbarPhoto.valueChanged.connect(self.load_photo)
         self.chkAutoLoadADMPs.toggled.connect(self.set_chkAutoLoadADMPs)
         self.btnShowADMPEvent.clicked.connect(lambda: self.load_file('ADMP'))
         self.btnShowCFEvent.clicked.connect(lambda: self.load_file('CF'))
         self.btnShowPhoto.clicked.connect(lambda: self.load_file('photo'))
         self.btnJumpToPhoto.clicked.connect(self.jump_to_photo)
+        self.chkZoom.toggled.connect(self.show_photo)
         
         self.radioIsABus.toggled.connect(lambda: self.set_vehicle_type('bus'))
         self.radioIsATruck.toggled.connect(lambda: self.set_vehicle_type('truck'))
@@ -304,8 +310,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.lblPhoto.setGeometry(geometry)
         
         if self.rv != None:
-            self.lblPhoto.setPixmap(self.pixmap.scaled(self.lblPhoto.geometry().width(), self.lblPhoto.geometry().height(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
-
+            self.show_photo()
 
     def about(self):
         QMessageBox.about(
@@ -313,7 +318,7 @@ class Window(QMainWindow, Ui_MainWindow):
             "About BrAId photo labeller",
             "<p>A simple utility to check and manually label AI labelled photos</p>"
             "<p>Jan Kalin &lt;jan.kalin@zag.si&gt;</p>"
-            "<p>v1.5, 13. May 2024</p>"
+            "<p>v1.5, 14. May 2024</p>"
         )
 
     def shortcuts(self):
@@ -326,6 +331,7 @@ class Window(QMainWindow, Ui_MainWindow):
             <tr><td><kbd>&lt;Up-Arrow&gt;</kbd></td><td>Previous photo</td></tr>
             <tr><td><kbd>&lt;Down-Arrow&gt;</kbd></td><td>Next photo</td></tr>
             <tr><td><kbd>D</kbd></td><td>Load ADMPs</td></tr>
+            <tr><td><kbd>Z</kbd></td><td>Zoom in/out of the box</td></tr>
             <tr><th>Shortcut</th><th>Action</th></tr>
             <tr><td><kbd>B</kbd></td><td>Set vehicle type to <tt>bus</tt></td></tr>
             <tr><td><kbd>T</kbd></td><td>Set vehicle type to <tt>truck</tt></td></tr>
@@ -386,8 +392,8 @@ that you stop working now and investigate the cause of problems!""")
         try:
             QApplication.setOverrideCursor(Qt.WaitCursor)
             try:
-                self.selected = [x for x in self.rvs_batches[self.axle_groups()]
-                                 if not self.chkOnlyUnseen.isChecked() or not load_metadata(x, metadata_filename, seen_by=True)]
+                self.selected = [x for x in self.rvs_batches[self.axle_groups()]]
+                                 # if not self.chkOnlyUnseen.isChecked() or not load_metadata(x, metadata_filename, seen_by=True)]
                 self.scrollbarPhoto.setMaximum(len(self.selected) - 1)
                 self.scrollbarPhoto.setValue(0)
             except:
@@ -395,7 +401,7 @@ that you stop working now and investigate the cause of problems!""")
                 self.scrollbarPhoto.setValue(0)
         finally:
             QApplication.restoreOverrideCursor()
-        self.show_photo()
+        self.load_photo()
 
     def previous_photo(self):
         """Shows previous photo"""
@@ -413,12 +419,11 @@ that you stop working now and investigate the cause of problems!""")
             idx = int(self.edtJumpToPhoto.text()) - 1
             self.scrollbarPhoto.setValue(idx)
         except:
-            raise
-            beep
+            beep()
             return
         
         
-    def show_photo(self):
+    def load_photo(self):
         """Shows photo, loads metadata, updates 'seen_by' and perhaps loads ADMPs"""
         try:
             QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -440,7 +445,7 @@ that you stop working now and investigate the cause of problems!""")
                     self.metadata = None
                     return
                 self.pixmap = QPixmap(filename)
-                self.lblPhoto.setPixmap(self.pixmap.scaled(self.lblPhoto.geometry().width(), self.lblPhoto.geometry().height(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                self.show_photo()
                 self.metadata = load_metadata(self.rv, metadata_filename)
                 try:
                     self.last_seen_by = self.metadata['seen_by']
@@ -467,6 +472,21 @@ that you stop working now and investigate the cause of problems!""")
             raise
         finally:
             QApplication.restoreOverrideCursor()
+            
+    def show_photo(self):
+        """Shows zoomed or unzoomed photo"""
+        to_show = self.pixmap
+        if self.chkZoom.isChecked():
+            try:
+                color = self.metadata['segment']
+            except:
+                color = 'r'
+            for segment in self.rv['segments']:
+                if segment['box']['color'] == color:
+                    to_show = self.pixmap.copy(segment['box']['x'], segment['box']['y'], segment['box']['width'], segment['box']['height'])
+                    break
+        self.lblPhoto.setPixmap(to_show.scaled(self.lblPhoto.geometry().width(), self.lblPhoto.geometry().height(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                    
     
     def show_metadata(self):
         """Shows metadata in the 'Label' group box
@@ -724,14 +744,13 @@ that you stop working now and investigate the cause of problems!""")
         """Sets segment"""
         if self.updating_metadata or self.rv == None:
             return
-        # if not radio.isChecked():
-        #     return
         self.metadata['segment'] = color
         self.save_changed_metadata()
         self.updating_metadata = True
         self.set_vehicle_type_radio_button()
         self.updating_metadata = False
-        
+        if self.chkZoom.isChecked():
+            self.show_photo()
 
     def set_error(self, widget, name):
         """Sets one of the error flags"""
@@ -761,7 +780,8 @@ win = Window()
 win.load_data(rvs_batches)
 
 # DEBUG
-win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 46)
+if getpass.getuser() == 'janka':
+    win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 15)
 
 win.show()
 sys.exit(app.exec())
