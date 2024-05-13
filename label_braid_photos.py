@@ -313,7 +313,7 @@ class Window(QMainWindow, Ui_MainWindow):
             "About BrAId photo labeller",
             "<p>A simple utility to check and manually label AI labelled photos</p>"
             "<p>Jan Kalin &lt;jan.kalin@zag.si&gt;</p>"
-            "<p>v1.4, 10. May 2024</p>"
+            "<p>v1.5, 13. May 2024</p>"
         )
 
     def shortcuts(self):

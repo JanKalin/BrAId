@@ -4,10 +4,13 @@
 
 Jan Kalin <jan.kalin@zag.si>
 
+v1.4, 13. maj 2024
+
+- Dodan gump *Jump to photo* za hitro izbiro fotografije
+
 v1.4, 10. maj 2024
 
 - Premešan interface, sedaj se slika veča z oknom
-- 
 
 v1.3, 27. april 2024
 
