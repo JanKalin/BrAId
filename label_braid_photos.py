@@ -171,7 +171,7 @@ class Window(QMainWindow, Ui_MainWindow):
                                          self.groupboxPhoto.geometry().height() - self.lblPhoto.geometry().height())
 
     def eventFilter(self, source, event):
-        if event.type() == QEvent.KeyPress and  QApplication.focusWidget() != self.edtComment and type(source) is QWindow:
+        if event.type() == QEvent.KeyPress and QApplication.focusWidget() != self.edtComment and type(source) is QWindow:
             if event.key() == Qt.Key_D:
                 self.load_ADMPs()
                 return True
@@ -243,6 +243,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.btnShowADMPEvent.clicked.connect(lambda: self.load_file('ADMP'))
         self.btnShowCFEvent.clicked.connect(lambda: self.load_file('CF'))
         self.btnShowPhoto.clicked.connect(lambda: self.load_file('photo'))
+        self.btnJumpToPhoto.clicked.connect(self.jump_to_photo)
         
         self.radioIsABus.toggled.connect(lambda: self.set_vehicle_type('bus'))
         self.radioIsATruck.toggled.connect(lambda: self.set_vehicle_type('truck'))
@@ -403,6 +404,19 @@ that you stop working now and investigate the cause of problems!""")
     def next_photo(self):
         """Shows next photo"""
         self.scrollbarPhoto.setValue(self.scrollbarPhoto.sliderPosition() + 1)
+        
+    def jump_to_photo(self):
+        """Jumps to photo"""
+        if not self.axle_groups() or self.scrollbarPhoto.sliderPosition() == -1:
+            return
+        try:
+            idx = int(self.edtJumpToPhoto.text()) - 1
+            self.scrollbarPhoto.setValue(idx)
+        except:
+            raise
+            beep
+            return
+        
         
     def show_photo(self):
         """Shows photo, loads metadata, updates 'seen_by' and perhaps loads ADMPs"""

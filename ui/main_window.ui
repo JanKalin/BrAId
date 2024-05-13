@@ -36,9 +36,9 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>20</y>
+       <y>50</y>
        <width>640</width>
-       <height>651</height>
+       <height>621</height>
       </rect>
      </property>
      <property name="text">
@@ -52,9 +52,9 @@
      <property name="geometry">
       <rect>
        <x>660</x>
-       <y>20</y>
+       <y>50</y>
        <width>21</width>
-       <height>651</height>
+       <height>621</height>
       </rect>
      </property>
      <property name="autoFillBackground">
@@ -65,6 +65,55 @@
      </property>
      <property name="invertedAppearance">
       <bool>false</bool>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btnShowPhoto">
+     <property name="geometry">
+      <rect>
+       <x>110</x>
+       <y>20</y>
+       <width>101</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Show in viewer</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chkOnlyUnseen">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Only unseen</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="edtJumpToPhoto">
+     <property name="geometry">
+      <rect>
+       <x>600</x>
+       <y>20</y>
+       <width>51</width>
+       <height>21</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btnJumpToPhoto">
+     <property name="geometry">
+      <rect>
+       <x>504</x>
+       <y>20</y>
+       <width>91</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Jump to photo</string>
      </property>
     </widget>
    </widget>
@@ -101,32 +150,6 @@
        <width>141</width>
        <height>21</height>
       </rect>
-     </property>
-    </widget>
-    <widget class="QCheckBox" name="chkOnlyUnseen">
-     <property name="geometry">
-      <rect>
-       <x>250</x>
-       <y>30</y>
-       <width>161</width>
-       <height>17</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Show only unseen vehicles</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="btnShowPhoto">
-     <property name="geometry">
-      <rect>
-       <x>420</x>
-       <y>30</y>
-       <width>151</width>
-       <height>23</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Show photo in viewer</string>
      </property>
     </widget>
    </widget>
@@ -523,7 +546,7 @@
      <widget class="QRadioButton" name="radioWht">
       <property name="geometry">
        <rect>
-        <x>270</x>
+        <x>280</x>
         <y>20</y>
         <width>41</width>
         <height>17</height>
