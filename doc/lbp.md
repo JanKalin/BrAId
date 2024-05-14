@@ -4,13 +4,23 @@
 
 Jan Kalin <jan.kalin@zag.si>
 
+**Zgodovina izdaj aplikacije in dokumentacije**
+
+v1.7, 14. maj 2024
+
+- Dodane so [smernice za označevanje](#smernice-za-označevanje)
+- Uvedena je oznaka *Multiple vehicles*, opisana je pri [splošnih oznakah](#splošne-oznake)
+- Dodani sta oznaki *Reconstructed* in *Fixed* ter opis le-teh v razdelku [rekonstruirane in popravljene osi](#rekonstruirane-in-popravljene-osi)
+- Gumb za [hitro izbiro fotografije](#izbira-fotografije) je odstranjen. Namesto tega se sliko izbere s tipko `<Enter>` v vnosnem polju
+- Bugfix: pri praznem spisku medosnih razdalj (posledica diskrepance med NSWD in EVENT datotekama zaradi popravkov osi) je prišlo do prekinitve izvajanja aplikacije
+
 v1.6, 14. maj 2024
 
-- Dodana funkcija *Zoom*
+- Dodana funkcija [*Zoom*](#zoženje-pogleda-(zoom))
 
 v1.5, 13. maj 2024
 
-- Dodan gumb *Jump to photo* za hitro izbiro fotografije
+- Dodano vnosno polje *Jump to photo* za hitro izbiro fotografije
 
 v1.4, 10. maj 2024
 
@@ -30,7 +40,7 @@ v1.1, 27. marec 2024
 - Velike množice vozil (npr., tovornjaki s skupinam 113) so razdeljene na podmnožice moči 1000.
 - Bližnjice so brez `<Alt>`
 - Nov način opisovanja dvignjenih osi
-- Dodana napaka **Nekonsistentni Podatki**
+- Dodana oznaka **Nekonsistentni Podatki**
 
 v1.0, 20. marec 2024
 
@@ -119,7 +129,7 @@ OSError: [Errno 22] Invalid argument
 M:\disk_600_konstrukcije\JanK\braid_photo>
 ````
 
-To prosim prekopirajte — tekst se označi s potegom z miške s pritisnjeno leve tipko in spravi na clipboard s tipko `<Enter>` — in pošljite avtorju.
+To prosim prekopirajte — tekst se označi s potegom z miške s pritisnjeno levo tipko in spravi na clipboard s tipko `<Enter>` — in pošljite avtorju.
 
 Potem lahko aplikacijo zoper poženete z `<Up-Arrow>` in `<Enter>`.
 
@@ -165,11 +175,15 @@ Ko se izbere skupine osi, se v razdelku *Photo* takoj pojavi prva fotografija zn
 
 V imenu razdelka je napisana zaporedna številka vozila, število vseh vozil, timestamp vozila, ID fotografije ter *ORIGINAL*, če oznake slike niso bile spremenjene ali `CHANGED`, če so bile. Na vrhu razdelka je izpisano uporabniško ime zadnjega, ki je fotografijo videl ter, če so bile oznake spremenjene, ime uporabnika, ki je zadnji spreminjal oznake.
 
+###### Izbira fotografije
+
 Slike se lahko izbira s puščico gor — `<Up>` ali dol — `<Down>`.  Lahko pa tudi s klikanjem na drsni trak poleg slike.
 
 Za lažjo izbiro slike je možno vpisati številko slike v vnosno polje zgoraj desno in s pritiskom na tipko *Jump to photo* neposredno izbrati to sliko.
 
-Možno je tudi zožiti pogled (Zoom) na okvirček. To se naredi s klikom na izbiro polje *Zoom* ali z bližnjico `<Z>`. Če se spremeni izbira barve oznake, se spremeni tudi pogled. Primera sta na naslednjih slikah:
+###### Zoženje pogleda (zoom)
+
+Možno je tudi zožiti pogled (zoom) na okvirček ali ga razširiti nazaj na celo sliko. To se naredi s klikom na izbiro polje *Zoom* ali z bližnjico `<Z>`. Če se spremeni izbira barve oznake, se spremeni tudi pogled. Primera sta na naslednjih slikah:
 
 ![photo](zoomed1.png)
 
@@ -201,27 +215,50 @@ Pri spreminjanju polja *Raised* aplikacija samodejno popravi vrednost v polju *G
 
 N.B.: Pri avtomatskem spreminjanju polja *Groups*, se za izhodišče vedno vzame originalno vrednost. Torej, če vozilu 122 ročno popravimo grupe na 123, potem pa še v polju *Raised* določimo dvignjeno osi v drugi grupi z vnosom vrednosti `2`, bo aplikacija zavrgla ročno spremembo skupin in končni rezultat bodo skupine 132.
 
-##### Napake fotografije
+##### Oznake fotografije
 
 - **Napačni pas:** Načeloma so med vozili izbrana samo tista, ki jih je SiWIM detektiral na prvem pasu. Če je AI našel vozilo na drugem pasu, se to označi tukaj. Bližnjica je `L` za *Wrong **l**ane*.
 - **S pasu:** Včasih se zgodi, da vozilo ne vozi po svojem pasu. Bližnjica je `F`, za *O**f**f lane*.
 - **Slika odrezana:** Če je slika vozila odrezana. Bližnjica je `U` za *Photo tr**u**ncated*.
 
-##### WIM napake
+##### WIM oznake
 
 - **Presluh:** Včasih pride do presluha z enega pasu na drugega in vozilo se pojavi na obeh pasovih. Bližnjica je `R` za *C**r**osstalk*.
 - **Navidezna os:** To je mišljeno predvsem za osi pred ali po legitimnem vozilu, ne odvečno osi znotraj vozila. Bližnjica = `G` za ***G**host axle*.
 - **Vozilo razpolovljeno:** Če je medosna razdalja v kakšnem vozilu daljša od najdaljše v klasifikacijski tabeli, SiWIM razpolovi vozilo med tema osema v dve vozili. Bližnjica je `S` za ***S**plit*.
 - Vozilo združeno: Če si dve vozili sledita preblizu eno drugemu, jih SiWIM združi v eno vozilo. Bližnjica je `J` za ***J**oined*.
 
-##### Splošne napake
+###### Rekonstruirane in popravljene osi
 
-- **Nekonsistenti podatki:** Včasih pride do razhajanj med detektiranimi osmi in osmi prikazanimi na grafu. To je zato, ker so bile osi za graf rekonsturirane z, kot kaže, malenkost drugačnimi parametri detekcije osi. Tedaj se lahko preveri stanje z ogledom originalnih podatkov (*Show CF event in viewer*) in označi napako. Bližnjica je `I`, za ***I**nconsistent data*.
+Poleg teh štirih oznak, ki jih lahko uporabnik nastavi, sta še oznaki za rekonstruirana in popravljena vozila (*Reconstructed* in *Fixed*). Ti dve sta generirani iz NSWD datotek in shranjeni v datoteki `metadata.hdf5`. Obe lahko razložita diskrepance med detektiranimi grupami, sliko in grafom in s tem zmanjšata možnost, da je potrebno uporabiti oznako za nekonsistentne podatke.
+
+Rekonstrukcija je funkcija, ki vozilom z določenimi grupami osi doda os po določenih pravilih, ponovno preračuna teže in, če pride do izboljšanja prilagajanja signalu, obdrži dodane osi. Te dodane osi se ne shranijo v diagnostični kanal, prikazan v grafu *ADMPs*.
+
+Funkcija *fix* pa je bila implementirana v zunanji Python skripti in je delovala na NSWD datotekah
+
+##### Splošne oznake
+
+- **Nekonsistenti podatki:** Včasih pride do razhajanj med detektiranimi osmi in osmi prikazanimi na grafu. To je zato, ker so bile osi za graf rekonsturirane z, kot kaže, malenkost drugačnimi parametri detekcije osi, lahko pa tudi zaradi rekonstrukcije in popravljanja osi.  Načeloma je v tem primeru že strojno nastavljena oznaka za [rekonstruirane in/ali popravljene osi](#rekonstruirane-in-popravljene-osi), lahko pa kak primer uide strojnemu označevanju.
+
+  Tedaj se lahko preveri stanje z ogledom originalnih podatkov (*Show CF event in viewer*) in označi napako. Bližnjica je `I`, za ***I**nconsistent data*.
+
+- **Več vozil:** Da bi se začetno raziskovanje FAMNITa omejilo samo na dogodke v katerih je prisotno samo eno vozilo, se označi vozilo, ki ni samo v dogodku. Načeloma je ta napaka že strojno nastavljena iz informacij iz NSWD, lahko pa se zgodi, da kakšen primer uide.
+
+  Tedaj se lahko uporabi bližnjico `M` za ***M**ultiple vehicles*.
+
 - Zadnjo možnost se uporabi, ko ni dovolj informacij, da bi sploh pregledal sliko in jo označil (ali pa ne). Tedaj se uporabi **Ne morem označiti**. Bližnjica je `N` za *Ca**n**not label*.
 
 ##### Komentar
 
 Za dodajanje splošnih komentarjev je polje *Comment*. Vnos teksta je potrebno potrditi s pritiskom na tipko `<Enter>`.
+
+## Smernice za označevanje
+
+Tukaj so zbrane smernice za označevanje, ki smo jih dorekli na sestanku 14. maja 2024:
+
+- Za ne-avtobuse se v principu uporabi tip vozila *Truck* (tudi za kombije, gasilce,…). Tip vozila *Other* se uporablja le, če je res kaj zelo čudnega.
+- Pri oznaki *Cannot label* se ne piše razloga — le malo verjetno je, da bo kdo to kdaj gledal.
+- Komentar se uporabi le, če je kar res izjemnega. Ko/če se bomo odločili pregledovati komentarje, je koristno, da jih ni preveč.
 
 ## Uporaba več uporabnikov hkrati
 
@@ -230,6 +267,7 @@ Aplikacija skrbi za to, da jo lahko uporablja več uporabnikov hkrati. V zelo re
 V splošnem to ni problem za podatke, ker gre večinoma za branje. Izjema je datoteka `metadata.hdf5` zaradi:
 
 - Beleženja zadnjega dostopa takoj, ko se slika odpre
-- Shranjevanja sprememb označb napak.
+- Shranjevanja sprememb oznak.
 
 Če aplikacija tega ne more narediti, opozori z dvema piskoma in z izpisom na konzoli. Priporočeno je, da se takrat aplikacijo zapusti in razišče izvor težav, saj se spremembe ne bodo pisale v datoteko.
+

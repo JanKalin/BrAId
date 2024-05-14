@@ -10,6 +10,7 @@ with groups other than 11, 12, 111 and 121.
 
 #%% Import stuff
 
+import datetime
 import json
 import os
 import sys
@@ -20,24 +21,84 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(SCRIPT_DIR)), 'siwi
 from swm.vehicle import Vehicle
 from swm.utils import Progress
 
-from locallib import save_metadata
+from locallib import load_metadata, save_metadata
 
 #%% Load all files
 
+print("Loading recognized_vehicles-ORIGINAL.json, ", end='')
+sys.stdout.flush()
 with open(os.path.join(SCRIPT_DIR, 'data', "recognized_vehicles-ORIGINAL.json")) as f:
     rvs = json.load(f)
+print("done.")
+sys.stdout.flush()
 
+print("Loading *.nswd, ", end='')
+sys.stdout.flush()
 vehicles = Vehicle.from_txt_files(os.path.join(SCRIPT_DIR, "data", "*.nswd"), glob=True)
+print("done.")
+sys.stdout.flush()
 
-#%%
+metadatafile = os.path.join(SCRIPT_DIR, 'data', 'metadata.hdf5')
 
+#%% Generate sets of files
+
+print("Generating helper sets, ", end='')
+sys.stdout.flush()
+reconstructed = set([x.timestamp.timestamp() for x in vehicles if x.vehiclereconstructedflag()])
+fixed = set([x.timestamp.timestamp() for x in vehicles if x.qafixedflag()])
 lane1 = set([x.timestamp.timestamp() for x in vehicles if not x.lane])
-v2e = {x.timestamp.timestamp(): x.event_timestamp.timestamp() for x in vehicles if not x.lane}
+v2e_all = {x.timestamp.timestamp(): x.event_timestamp.timestamp() for x in vehicles}
+v2e_lane1 = {x.timestamp.timestamp(): x.event_timestamp.timestamp() for x in vehicles if not x.lane}
+multiple_vehicles = {}
+for e in v2e_all.values():
+    try:
+        multiple_vehicles[e] += 1
+    except:
+        multiple_vehicles[e] = 0
+print("done.")
+sys.stdout.flush()
 
+#%% Perhaps just set reconstructed and fixed flags
+
+set_reconstructed_and_fixed = True
+
+noprogress = False
+
+tochange = []
+if set_reconstructed_and_fixed:
+    print("Setting reconstructed, fixed and multiple_vehicle flags")
+    if not noprogress: progress = Progress("Processing {} photos... {{}}% ".format(len(rvs)), len(rvs))
+    for rv in rvs:
+        if not noprogress: progress.step()
+        metadata = None
+        
+        if multiple_vehicles[v2e_all[rv['vehicle_timestamp']]]:
+            metadata = load_metadata(rv, metadatafile)
+            try:
+                metadata['errors']
+            except:
+                metadata['errors'] = {}
+            metadata['errors']['multiple_vehicles'] = 2
+            tochange.append(datetime.datetime.fromtimestamp(rv['vehicle_timestamp']).isoformat())
+            
+        if rv['vehicle_timestamp'] in lane1 and (rv['vehicle_timestamp'] in reconstructed or rv['vehicle_timestamp'] in fixed):
+            if metadata is None:
+                metadata = load_metadata(rv, metadatafile)
+                try:
+                    metadata['errors']
+                except:
+                    metadata['errors'] = {}
+            if rv['vehicle_timestamp'] in reconstructed:
+                metadata['errors']['reconstructed'] = 2
+            if rv['vehicle_timestamp'] in fixed:
+                metadata['errors']['fixed'] = 2
+        if metadata is not None:
+            save_metadata(rv, metadata, metadatafile)
+            
+    raise SystemExit
 
 #%% Now change busses for trucks
 
-datafile = os.path.join(SCRIPT_DIR, 'data', 'metadata.hdf5')
 
 count = 0
 noprogress = False
@@ -62,7 +123,7 @@ for rv in rvs:
             changed += 1
     if changed:
         count += changed
-        save_metadata(rv, metadata, datafile)
+        save_metadata(rv, metadata, metadatafile)
 
 print("Found", count, "vehicles bus->truck")
 

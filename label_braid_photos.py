@@ -1,4 +1,4 @@
-__version__ = 1.6
+__version__ = 1.7
 
 ### Import stuff
 
@@ -54,6 +54,7 @@ parser.add_argument("--siwim_cf_data_root", help="Root for SiWIM calcualated dat
 parser.add_argument("--siwim_cf_rpindex", help="SiWIM CF replay index", default=1)
 parser.add_argument("--siwim_cf_module", help="SiWIM CF module", default="cf")
 parser.add_argument("--data_dir", help="Data directory", default=os.path.join(SCRIPT_DIR, 'data'))
+parser.add_argument("--metadata_dir", help="Metadata directory", default=os.path.join(SCRIPT_DIR, 'data') if getpass.getuser() == 'jank' else r"M:\disk_600_konstrukcije\JanK\braid_photo\data")
 parser.add_argument("--count", help="Count vehicles", action='store_true')
 parser.add_argument("--timeout", help="File write timeout in seconds", type=int, default=10)
 parser.add_argument("--batchsize", help="Batch size for better motivation :)", type=int, default=1000)
@@ -61,16 +62,22 @@ parser.add_argument("--noseen_by", help="Do not change `seen_by` metadata. Used 
 
 try:
     __IPYTHON__
-    args = parser.parse_args("".split())
+    if getpass.getuser() == 'jank' and False:
+        args = parser.parse_args(r"--metadata_dir N:\disk_600_konstrukcije\JanK\braid_photo\data".split())
+    else:
+        raise Exception
 except:
     args = parser.parse_args()
-
 
 # Index to color and color to index
 i2c = ['r', 'g', 'b', 'c', 'y', 'm', 'w']
 c2i = {c: i for (i, c) in enumerate(i2c)}
 
+# Filename
+metadata_filename = os.path.join(args.metadata_dir, "metadata.hdf5")
+
 #%% Load data first and make datetime from timestamps
+print(f"label_braid_photos v{__version__} starting up...")
 
 print("Loading recognized_vehicles.json, ", end='')
 sys.stdout.flush()
@@ -95,7 +102,6 @@ for rv in rvs_loaded:
     except:
         rvs_list[rv['axle_groups']] = [rv]
 
-metadata_filename = os.path.join(args.data_dir, "metadata.hdf5")
 
 #%% Make batches
 
@@ -209,6 +215,9 @@ class Window(QMainWindow, Ui_MainWindow):
             elif event.key() == Qt.Key_N:
                 self.chkCannotLabel.setCheckState(0 if self.chkCannotLabel.checkState() else 2)
                 return True
+            elif event.key() == Qt.Key_M:
+                self.chkMultipleVehicles.setCheckState(0 if self.chkMultipleVehicles.checkState() else 2)
+                return True
             elif event.key() == Qt.Key_Z:
                 self.chkZoom.setCheckState(0 if self.chkZoom.checkState() else 2)
                 self.show_photo()
@@ -248,7 +257,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.btnShowADMPEvent.clicked.connect(lambda: self.load_file('ADMP'))
         self.btnShowCFEvent.clicked.connect(lambda: self.load_file('CF'))
         self.btnShowPhoto.clicked.connect(lambda: self.load_file('photo'))
-        self.btnJumpToPhoto.clicked.connect(self.jump_to_photo)
+        self.edtJumpToPhoto.returnPressed.connect(self.jump_to_photo)
         self.chkZoom.toggled.connect(self.show_photo)
         
         self.radioIsABus.toggled.connect(lambda: self.set_vehicle_type('bus'))
@@ -286,6 +295,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.chkCrosstalk.stateChanged.connect(lambda: self.set_error(self.chkCrosstalk, 'crosstalk'))
         self.chkGhostAxle.stateChanged.connect(lambda: self.set_error(self.chkGhostAxle, 'ghost_axle'))
         self.chkInconsistentData.stateChanged.connect(lambda: self.set_error(self.chkInconsistentData, 'inconsistent_data'))
+        self.chkMultipleVehicles.stateChanged.connect(lambda: self.set_error(self.chkMultipleVehicles, 'multiple_vehicles'))
         self.chkCannotLabel.stateChanged.connect(lambda: self.set_error(self.chkCannotLabel, 'cannot_label'))
         
     def resizeEvent(self, event):
@@ -457,8 +467,10 @@ that you stop working now and investigate the cause of problems!""")
                         save_metadata(self.rv, self.metadata, metadata_filename, timeout=args.timeout)
                     except RuntimeError as err:
                         self.metadata_file_error(err)
+                changed = ", ORIGINAL"
                 try:
-                    changed = ", CHANGED" if self.metadata['changed_by'] else ", ORIGINAL"
+                    if self.metadata['changed_by']:
+                        changed = ", CHANGED"
                 except:
                     pass
                 self.groupboxPhoto.setTitle(f"Photo {self.scrollbarPhoto.sliderPosition() + 1}/{self.scrollbarPhoto.maximum() + 1}"
@@ -582,6 +594,18 @@ that you stop working now and investigate the cause of problems!""")
                     self.chkInconsistentData.setCheckState(self.metadata['errors']['inconsistent_data'])
                 except:
                     self.chkInconsistentData.setCheckState(False)
+                try:
+                    self.chkMultipleVehicles.setCheckState(self.metadata['errors']['multiple_vehicles'])
+                except:
+                    self.chkMultipleVehicles.setCheckState(False)
+                try:
+                    self.lblReconstructed.setStyleSheet("background-color: rgb(0, 255, 0);" if self.metadata['errors']['reconstructed'] else "")
+                except:
+                    self.lblReconstructed.setStyleSheet("")
+                try:
+                    self.lblFixed.setStyleSheet("background-color: rgb(0, 255, 0);" if self.metadata['errors']['fixed'] else "")
+                except:
+                    self.lblFixed.setStyleSheet("")
                     
         finally:
             self.updating_metadata = False
@@ -641,8 +665,9 @@ that you stop working now and investigate the cause of problems!""")
                     if vehicle.timestamp == self.rv['vehicle_timestamp']:
                         axle_distance = vehicle.axle_distance
                 plot[0].vlines(self.rv['vehicle_timestamp'], ylim[0][0] + (ylim[0][1] - ylim[0][0])/10, ylim[0][1], color='g')
-                plot[0].text(plot[0].get_xlim()[1], plot[0].get_ylim()[1], "\n".join([f"$A_{i+1}$: {x:5.2f}m" for (i, x) in enumerate(axle_distance)]),
-                             ha='right', va='top')
+                if axle_distance is not None:
+                    plot[0].text(plot[0].get_xlim()[1], plot[0].get_ylim()[1], "\n".join([f"$A_{i+1}$: {x:5.2f}m" for (i, x) in enumerate(axle_distance)]),
+                                 ha='right', va='top')
                 plot[lane].xaxis.set_major_formatter(self.formatter)
         finally:
             self.fig.canvas.draw_idle()
@@ -773,16 +798,15 @@ that you stop working now and investigate the cause of problems!""")
 
 
 # Load window and run main loop    
-        
+     
 app = QApplication(sys.argv)
 win = Window()
-
 win.load_data(rvs_batches)
 
 # DEBUG
-if getpass.getuser() == 'janka':
-    win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 15)
+if getpass.getuser() == 'jank':
+    win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 46)
 
+print("Good lick (ref.: 'Allo 'Allo)")
 win.show()
 sys.exit(app.exec())
-

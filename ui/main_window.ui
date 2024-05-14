@@ -90,19 +90,6 @@
       </rect>
      </property>
     </widget>
-    <widget class="QPushButton" name="btnJumpToPhoto">
-     <property name="geometry">
-      <rect>
-       <x>530</x>
-       <y>20</y>
-       <width>91</width>
-       <height>23</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Jump to photo</string>
-     </property>
-    </widget>
     <widget class="QCheckBox" name="chkZoom">
      <property name="geometry">
       <rect>
@@ -114,6 +101,19 @@
      </property>
      <property name="text">
       <string>Zoom</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="lblJumpToPhoto">
+     <property name="geometry">
+      <rect>
+       <x>556</x>
+       <y>20</y>
+       <width>71</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Jump to photo:</string>
      </property>
     </widget>
    </widget>
@@ -175,7 +175,7 @@
       <x>10</x>
       <y>140</y>
       <width>611</width>
-      <height>161</height>
+      <height>171</height>
      </rect>
     </property>
     <property name="title">
@@ -210,14 +210,14 @@
     <widget class="QGroupBox" name="groupboxWimErrors">
      <property name="geometry">
       <rect>
-       <x>430</x>
+       <x>420</x>
        <y>10</y>
-       <width>161</width>
-       <height>61</height>
+       <width>181</width>
+       <height>81</height>
       </rect>
      </property>
      <property name="title">
-      <string>WIM Labels</string>
+      <string>WIM labels and flags</string>
      </property>
      <widget class="QCheckBox" name="chkGhostAxle">
       <property name="geometry">
@@ -248,7 +248,7 @@
      <widget class="QCheckBox" name="chkVehicleSplit">
       <property name="geometry">
        <rect>
-        <x>100</x>
+        <x>120</x>
         <y>20</y>
         <width>41</width>
         <height>17</height>
@@ -261,7 +261,7 @@
      <widget class="QCheckBox" name="chkVehicleJoined">
       <property name="geometry">
        <rect>
-        <x>100</x>
+        <x>120</x>
         <y>40</y>
         <width>51</width>
         <height>17</height>
@@ -271,6 +271,32 @@
        <string>Joined</string>
       </property>
      </widget>
+     <widget class="QLabel" name="lblReconstructed">
+      <property name="geometry">
+       <rect>
+        <x>28</x>
+        <y>60</y>
+        <width>71</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Reconstructed</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="lblFixed">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>60</y>
+        <width>31</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Fixed</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QGroupBox" name="groupBox">
      <property name="geometry">
@@ -278,11 +304,11 @@
        <x>270</x>
        <y>10</y>
        <width>131</width>
-       <height>61</height>
+       <height>81</height>
       </rect>
      </property>
      <property name="title">
-      <string>General Labels</string>
+      <string>General labels</string>
      </property>
      <widget class="QCheckBox" name="chkInconsistentData">
       <property name="geometry">
@@ -310,12 +336,25 @@
        <string>Cannot label</string>
       </property>
      </widget>
+     <widget class="QCheckBox" name="chkMultipleVehicles">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>60</y>
+        <width>111</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Multiple vehicles</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QGroupBox" name="groupboxVehicleType">
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>70</y>
+       <y>80</y>
        <width>71</width>
        <height>81</height>
       </rect>
@@ -370,7 +409,7 @@
      <property name="geometry">
       <rect>
        <x>90</x>
-       <y>70</y>
+       <y>80</y>
        <width>171</width>
        <height>81</height>
       </rect>
@@ -429,9 +468,9 @@
      <property name="geometry">
       <rect>
        <x>270</x>
-       <y>80</y>
+       <y>100</y>
        <width>331</width>
-       <height>71</height>
+       <height>61</height>
       </rect>
      </property>
      <property name="title">
@@ -620,9 +659,9 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>300</y>
+      <y>320</y>
       <width>611</width>
-      <height>391</height>
+      <height>371</height>
      </rect>
     </property>
     <property name="title">
@@ -634,7 +673,7 @@
        <x>10</x>
        <y>50</y>
        <width>591</width>
-       <height>331</height>
+       <height>311</height>
       </rect>
      </property>
      <layout class="QVBoxLayout" name="layoutGraph"/>
