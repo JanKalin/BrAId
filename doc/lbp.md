@@ -1,10 +1,13 @@
-
-
 # Navodila za uporabo LBP (Label Braid Photos)
 
 Jan Kalin <jan.kalin@zag.si>
 
 **Zgodovina izdaj aplikacije in dokumentacije**
+
+v1.8, 15. maj 2024
+
+- Dodana sta preprosta [popravka slik](#popravljanje-slik)
+- Dodana je možnost za [zaklep datoteke `metadata.hdf5`](#zaklepanje-datoteke-metadata.hdf5)
 
 v1.7, 14. maj 2024
 
@@ -76,6 +79,14 @@ V direktoriju `M:\disk_600_konstrukcije\JanK\braid_photo\data` so podatki:
 - Najpomembnejša datoteka je `metadata.hdf5`, v katero se shranjujejo rezultati ročnega označevanja vozil. Če se izgubi ali pokvari ta datoteka, bo ves do tedaj vložen trud zaman.
 
 Če je Python pravilno inštaliran, bi moral dvoklik na skripto le-to zagnati.
+
+#### Zaklepanje datoteke `metadata.hdf5`
+
+Občasno (zelo redko) bo potrebna daljša obdelava, pri čemer se vsebina datoteke ne sme spreminjati. V tem primeru se bo ob zagonu aplikacije (ali med samim izvajanjem) pojavil opozorilen dialog:
+
+<img src="D:\siwim\siwim-pi-projects\braid_photo\doc\locked.png" alt="locked" style="zoom:67%;" />
+
+V tem primeru je treba zapustiti aplikacijo in počakati, da se datoteka odklene. Načeloma bo zaklep objavljen vnaprej.
 
 ### Predpriprava na zagon
 
@@ -188,6 +199,18 @@ Možno je tudi zožiti pogled (zoom) na okvirček ali ga razširiti nazaj na cel
 ![photo](zoomed1.png)
 
 ![photo](zoomed2.png)
+
+###### Popravljanje slik
+
+Z klikom miške na sliko je možno izvesti preproste popravke slike. V naslednji tabeli so zbrane tipke in z njimi povezani popravki:
+
+| Tipka            | Popravek                    |
+| ---------------- | --------------------------- |
+| `<Leva>`         | Povečanje kontrasta za 25%  |
+| `<Shift>+<Leva>` | Zmanjšanje kontrasta za 25% |
+| `<Desna>`        | Povečanje svetlosti za 25%  |
+| `<Shift>+<Desna>` | Zmanjšanje svetlosti za 25% |
+|  `<Srednja>`      | Vrnitev originalne slike |
 
 #### Nastavljanje oznak
 

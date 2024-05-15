@@ -1,10 +1,11 @@
-__version__ = 1.7
+__version__ = 1.8
 
 ### Import stuff
 
 import argparse
 import datetime
 import getpass
+import io
 import json
 import os
 import re
@@ -19,8 +20,10 @@ import matplotlib.dates as mdates
 from matplotlib.figure import Figure
 import numpy as np
 
-from PyQt5.QtCore import Qt, QEvent, QSize
-from PyQt5.QtGui import QPixmap, QWindow, QValidator
+from PIL import Image, ImageEnhance, ImageQt
+
+from PyQt5.QtCore import Qt, QEvent, QSize, QBuffer
+from PyQt5.QtGui import QPixmap, QImage, QWindow, QValidator
 from PyQt5.QtWidgets import  QApplication, QMainWindow, QMessageBox
 
 if hasattr(Qt, 'AA_EnableHighDpiScaling'):
@@ -62,7 +65,7 @@ parser.add_argument("--noseen_by", help="Do not change `seen_by` metadata. Used 
 
 try:
     __IPYTHON__
-    if getpass.getuser() == 'jank' and False:
+    if False and getpass.getuser() == 'jank':
         args = parser.parse_args(r"--metadata_dir N:\disk_600_konstrukcije\JanK\braid_photo\data".split())
     else:
         raise Exception
@@ -75,6 +78,7 @@ c2i = {c: i for (i, c) in enumerate(i2c)}
 
 # Filename
 metadata_filename = os.path.join(args.metadata_dir, "metadata.hdf5")
+metadata_lock = os.path.join(args.metadata_dir, "metadata.lock")
 
 #%% Load data first and make datetime from timestamps
 print(f"label_braid_photos v{__version__} starting up...")
@@ -117,6 +121,42 @@ for axle_groups in rvs_list:
             rvs_batches[f"{axle_groups} [{batch + 1:02}/{batches:02}]"] = rvs_list[axle_groups][batch*args.batchsize:(batch+1)*args.batchsize]   
 
 #%% Main window class and helper functions
+
+def qpixmap_to_pil_image(qpixmap):
+    """
+    Convert a QPixmap object to a PIL Image object.
+    
+    Args:
+    qpixmap (QPixmap): The QPixmap object to convert.
+    
+    Returns:
+    PIL.Image: The converted PIL Image object.
+    """
+    qimage = qpixmap.toImage()
+    buffer = QBuffer()
+    buffer.open(QBuffer.ReadWrite)
+    qimage.save(buffer, "PNG")
+    pil_image = Image.open(io.BytesIO(buffer.data()))
+    return pil_image
+
+def pil_image_to_qt_pixmap(pil_image):
+    """
+    Convert a PIL Image object to a QPixmap object.
+    
+    Args:
+    pil_image (PIL.Image): The PIL Image to convert.
+    
+    Returns:
+    QPixmap: The converted QPixmap object.
+    """
+    if pil_image.mode != "RGBA":
+        pil_image = pil_image.convert("RGBA")
+    data = pil_image.tobytes()
+    width, height = pil_image.size
+    qimage = QImage(data, width, height, QImage.Format_RGBA8888)
+    qpixmap = QPixmap.fromImage(qimage)
+    return qpixmap
+
 
 class RaisedValidator(QValidator):
     def __init__(self, parent = None, window=None):
@@ -224,6 +264,17 @@ class Window(QMainWindow, Ui_MainWindow):
                 return True
             else:
                 pass
+        elif event.type() == QEvent.MouseButtonRelease and source == self.lblPhoto:
+            if event.button() == Qt.MiddleButton:
+                self.enhanced_pixmap = self.original_pixmap
+                self.show_photo()
+                return True
+            if event.button() in [Qt.LeftButton, Qt.RightButton] and event.modifiers() in [Qt.NoModifier, Qt.ShiftModifier]:
+                factor = 1.25 if event.modifiers() == Qt.NoModifier else 1/1.25
+                function = ImageEnhance.Contrast if event.button() == Qt.LeftButton else ImageEnhance.Brightness
+                self.enhanced_pixmap = pil_image_to_qt_pixmap(function(qpixmap_to_pil_image(self.enhanced_pixmap)).enhance(factor))
+                self.show_photo()
+                return True
         return super().eventFilter(source, event)
     
     def load_data(self, rvs_batches):
@@ -355,11 +406,27 @@ class Window(QMainWindow, Ui_MainWindow):
             <tr><td><kbd>R</kbd></td><td>Crosstalk</td></tr>
             <tr><td><kbd>G</kbd></td><td>Ghost Axle</td></tr>
             <tr><td><kbd>I</kbd></td><td>Inconsistent data</td></tr>
+            <tr><td><kbd>M</kbd></td><td>Multiple vehicles</td></tr>
             <tr><td><kbd>N</kbd></td><td>Cannot Label</td></tr>
             </table>
             """
         )
                 
+    def is_locked(self):
+        """Checks if the metadata file is locked and displays message if it is"""
+        if os.path.isfile(metadata_lock):
+            QMessageBox.critical(
+                self,
+                "metadata.hdf5 is locked",
+                "<p>Sorry, the metadata.hdf5 file, containing labels, is currently locked by the administrator"
+                " for maintenance or upgrade.</p><p>Unfortunately you will not be able to label photos"
+                " and the last change made for this photo will not be written."
+                " Please check email for further details and expected time of unlocking.</p>"
+                "<p>Jan Kalin &lt;jan.kalin@zag.si&gt;</p>"
+            )
+            return True
+        return False
+    
     def metadata_file_error(self, err):
         beep()
         print("="*75)
@@ -447,6 +514,9 @@ that you stop working now and investigate the cause of problems!""")
                 else:
                     self.groupboxPhoto.setTitle("Photo")
             else:
+                if self.is_locked():
+                    win.cboxAxleGroups.setCurrentIndex(0);
+                    return
                 self.rv = self.selected[self.scrollbarPhoto.sliderPosition()]
                 filename = pngpath(args.photo_root, self.rv)
                 if not os.path.isfile(filename):
@@ -454,7 +524,8 @@ that you stop working now and investigate the cause of problems!""")
                     beep()
                     self.metadata = None
                     return
-                self.pixmap = QPixmap(filename)
+                self.original_pixmap = QPixmap(filename)
+                self.enhanced_pixmap = self.original_pixmap
                 self.show_photo()
                 self.metadata = load_metadata(self.rv, metadata_filename)
                 try:
@@ -487,7 +558,7 @@ that you stop working now and investigate the cause of problems!""")
             
     def show_photo(self):
         """Shows zoomed or unzoomed photo"""
-        to_show = self.pixmap
+        to_show = self.enhanced_pixmap
         if self.chkZoom.isChecked():
             try:
                 color = self.metadata['segment']
@@ -495,7 +566,7 @@ that you stop working now and investigate the cause of problems!""")
                 color = 'r'
             for segment in self.rv['segments']:
                 if segment['box']['color'] == color:
-                    to_show = self.pixmap.copy(segment['box']['x'], segment['box']['y'], segment['box']['width'], segment['box']['height'])
+                    to_show = self.enhanced_pixmap.copy(segment['box']['x'], segment['box']['y'], segment['box']['width'], segment['box']['height'])
                     break
         self.lblPhoto.setPixmap(to_show.scaled(self.lblPhoto.geometry().width(), self.lblPhoto.geometry().height(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
                     
@@ -699,6 +770,8 @@ that you stop working now and investigate the cause of problems!""")
         try:
             QApplication.setOverrideCursor(Qt.WaitCursor)
             self.metadata['changed_by'] = (datetime.datetime.now().timestamp(), getpass.getuser())
+            if self.is_locked():
+                return
             try:
                 save_metadata(self.rv, self.metadata, metadata_filename, args.timeout)
             except RuntimeError as err:
