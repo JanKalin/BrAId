@@ -4,6 +4,10 @@ Jan Kalin <jan.kalin@zag.si>
 
 **Zgodovina izdaj aplikacije in dokumentacije**
 
+v1.8.1, 15. maj 2024
+
+- Dodana so navodila za [lokalno zaganjanje aplikacije](#lokalno-zaganjanje-aplikacije)
+
 v1.8, 15. maj 2024
 
 - Dodana sta preprosta [popravka slik](#popravljanje-slik)
@@ -79,6 +83,27 @@ V direktoriju `M:\disk_600_konstrukcije\JanK\braid_photo\data` so podatki:
 - Najpomembnejša datoteka je `metadata.hdf5`, v katero se shranjujejo rezultati ročnega označevanja vozil. Če se izgubi ali pokvari ta datoteka, bo ves do tedaj vložen trud zaman.
 
 Če je Python pravilno inštaliran, bi moral dvoklik na skripto le-to zagnati.
+
+#### Lokalno zaganjanje aplikacije
+
+Pri vsakem zagonu mora aplikacija naložiti okoli 100MB podatkov v datotekah `recognized_vehicles.json` in `vehicle2event.json`. Če je omrežna povezava počasna, lahko to precej upočasni zagon aplikacije (po zagonu je vseeno, saj se ti dve datoteki naložita samo enkrat).
+
+Alternativa je, da se aplikacijo in ti dve datoteki prekopira na lokalni disk. Če je, na primer, direktorij z aplikacijo `D:\braid_photo`, morata biti drevesna struktura in lokacije datotek sledeče:
+
+```
+D:\braid_photo
+├──data
+│  ├──recognized_vehicles.json
+│  └──vehicle2event.json
+├──doc
+│  └──lbp.pdf
+├──label_braid_photos.py
+├──locallib.py
+└──main_window_ui.py
+
+```
+
+Slabost takšne postavitve je, da je treba ob nadgradnji aplikacije ponovno prekopirati datoteke `*.py` in `*.pdf` (datoteke `*.json`se ne spreminjajo), prednost pa precejšnji prihanek časa pri zagonu aplikacije. Na avtorjevem domačem PCju na hitri internetni povezavi (750/100 Mbps) lokalni zagon traja okoli 5 sekund, zagon z VPN omrežnega pa pol minute.
 
 #### Zaklepanje datoteke `metadata.hdf5`
 
