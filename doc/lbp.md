@@ -4,6 +4,10 @@ Jan Kalin <jan.kalin@zag.si>
 
 **Zgodovina izdaj aplikacije in dokumentacije**
 
+v1.9, 16. maj 2024
+
+- [Dvoklik na sliki](#popravljanje-slik) poveča kontrast ali svetlost za 125%
+
 v1.8.1, 15. maj 2024
 
 - Dodana so navodila za [lokalno zaganjanje aplikacije](#lokalno-zaganjanje-aplikacije)
@@ -232,8 +236,10 @@ Z klikom miške na sliko je možno izvesti preproste popravke slike. V naslednji
 | Tipka            | Popravek                    |
 | ---------------- | --------------------------- |
 | `<Leva>`         | Povečanje kontrasta za 25%  |
+| `dvoklik` `<Leva>` | Povečanje kontrasta za 125% |
 | `<Shift>+<Leva>` | Zmanjšanje kontrasta za 25% |
 | `<Desna>`        | Povečanje svetlosti za 25%  |
+| `dvoklik` `<Desna>`        | Povečanje svetlosti za 125%  |
 | `<Shift>+<Desna>` | Zmanjšanje svetlosti za 25% |
 |  `<Srednja>`      | Vrnitev originalne slike |
 

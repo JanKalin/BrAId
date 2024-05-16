@@ -1,4 +1,4 @@
-__version__ = 1.8
+__version__ = 1.9
 
 ### Import stuff
 
@@ -218,7 +218,7 @@ class Window(QMainWindow, Ui_MainWindow):
                                          self.groupboxPhoto.geometry().height() - self.lblPhoto.geometry().height())
 
     def eventFilter(self, source, event):
-        if event.type() == QEvent.KeyPress and QApplication.focusWidget() != self.edtComment and type(source) is QWindow:
+        if type(source) is QWindow and event.type() == QEvent.KeyPress and QApplication.focusWidget() != self.edtComment:
             if event.key() == Qt.Key_D:
                 self.load_ADMPs()
                 return True
@@ -264,14 +264,21 @@ class Window(QMainWindow, Ui_MainWindow):
                 return True
             else:
                 pass
-        elif event.type() == QEvent.MouseButtonRelease and source == self.lblPhoto:
+        elif source == self.lblPhoto and event.type() in [QEvent.MouseButtonPress, QEvent.MouseButtonDblClick]:
             if event.button() == Qt.MiddleButton:
                 self.enhanced_pixmap = self.original_pixmap
                 self.show_photo()
                 return True
-            if event.button() in [Qt.LeftButton, Qt.RightButton] and event.modifiers() in [Qt.NoModifier, Qt.ShiftModifier]:
+            handle_event = False
+            if event.button() in [Qt.LeftButton, Qt.RightButton] and event.type() == QEvent.MouseButtonDblClick and event.modifiers() == Qt.NoModifier:
+                factor = 2
+                function = ImageEnhance.Contrast if event.button() == Qt.LeftButton else ImageEnhance.Brightness
+                handle_event = True
+            elif event.button() in [Qt.LeftButton, Qt.RightButton] and event.modifiers() in [Qt.NoModifier, Qt.ShiftModifier]:
                 factor = 1.25 if event.modifiers() == Qt.NoModifier else 1/1.25
                 function = ImageEnhance.Contrast if event.button() == Qt.LeftButton else ImageEnhance.Brightness
+                handle_event = True
+            if handle_event:
                 self.enhanced_pixmap = pil_image_to_qt_pixmap(function(qpixmap_to_pil_image(self.enhanced_pixmap)).enhance(factor))
                 self.show_photo()
                 return True
