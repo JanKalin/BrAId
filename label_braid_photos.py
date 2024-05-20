@@ -1,4 +1,4 @@
-__version__ = 1.9
+__version__ = "1.10"
 
 ### Import stuff
 
@@ -12,6 +12,7 @@ import re
 import shutil
 import sys
 import tempfile
+import time
 
 import matplotlib
 matplotlib.use('Qt5Agg')
@@ -20,9 +21,9 @@ import matplotlib.dates as mdates
 from matplotlib.figure import Figure
 import numpy as np
 
-from PIL import Image, ImageEnhance, ImageQt
+from PIL import Image, ImageEnhance
 
-from PyQt5.QtCore import Qt, QEvent, QSize, QBuffer
+from PyQt5.QtCore import Qt, QEvent, QSize, QBuffer, QMutex, QObject, QThread
 from PyQt5.QtGui import QPixmap, QImage, QWindow, QValidator
 from PyQt5.QtWidgets import  QApplication, QMainWindow, QMessageBox
 
@@ -62,6 +63,7 @@ parser.add_argument("--count", help="Count vehicles", action='store_true')
 parser.add_argument("--timeout", help="File write timeout in seconds", type=int, default=10)
 parser.add_argument("--batchsize", help="Batch size for better motivation :)", type=int, default=1000)
 parser.add_argument("--noseen_by", help="Do not change `seen_by` metadata. Used for checking", action='store_true')
+parser.add_argument("--threaded", help="Use thread to load photos in the background. Currenlty inoperative", action='store_true')
 
 try:
     __IPYTHON__
@@ -71,6 +73,9 @@ try:
         raise Exception
 except:
     args = parser.parse_args()
+
+# Force no threads
+args.threaded = False
 
 # Index to color and color to index
 i2c = ['r', 'g', 'b', 'c', 'y', 'm', 'w']
@@ -120,7 +125,7 @@ for axle_groups in rvs_list:
         for batch in range(batches):
             rvs_batches[f"{axle_groups} [{batch + 1:02}/{batches:02}]"] = rvs_list[axle_groups][batch*args.batchsize:(batch+1)*args.batchsize]   
 
-#%% Main window class and helper functions
+#%% Image and validator helper functions
 
 def qpixmap_to_pil_image(qpixmap):
     """
@@ -179,6 +184,111 @@ class RaisedValidator(QValidator):
         else:
             return (QValidator.Invalid, s, pos)
 
+#%% Photo loader. See https://realpython.com/python-pyqt-qthread
+
+class PhotoLoader(QObject):
+    """Load photos in a separate thread"""
+    
+    def __init__(self, debug=False, nocache=False):
+        """Initialisation"""
+        super(PhotoLoader, self).__init__()
+        self.mutex = QMutex()
+        self.photos = []
+        self.debug = debug
+        self.nocache = nocache
+        self.stopped = False
+        
+    def clear(self):
+        """Clear list"""
+        try:
+            self.mutex.lock()
+            self.photos = []
+        finally:
+            self.mutex.unlock()
+        
+    def setup(self, photos):
+        """Set the list of photos to load"""
+        try:
+            self.mutex.lock()
+            self.photos = [[x, None] for x in photos]
+            self.last_idx = -1
+        finally:
+            self.mutex.unlock()
+            
+    def get_photo(self, idx):
+        """Get photo from the cache or load it"""
+        try:
+            self.mutex.lock()
+            if self.photos[idx][1] is not None:
+                if self.debug: print(f"Loading {idx} from cache")
+                return self.photos[idx][1]
+            else:
+                self.last_idx = idx
+                if self.debug: print(f"Loading {idx} from disk")
+                photo = QPixmap(self.photos[idx][0])
+                if not self.nocache:
+                    self.photos[idx][1] = photo
+                return self.photos[idx][0], photo
+        finally:
+            self.mutex.unlock()
+            
+    def stop(self):
+        self.stopped = True
+        
+    def loop(self):
+        """Thread running over the list and loading files"""
+        while not self.stopped:
+            # Half a second per loop is OK
+            time.sleep(0.25)
+            print("Here")
+            
+            # Fast operations: continue if we don't have photos or we have loaded all photos
+            try:
+                self.mutex.lock()
+                if not self.photos or not len([x for (_, x) in self.photos if x is None]):
+                    print("Nothing to do...")
+                    continue
+                idx = self.last_idx
+                len_photos = len(self.photos)
+                while True:
+                    idx = (idx + 1) % len_photos
+                    if self.photos[idx][1] is None:
+                        break
+                filename = self.photos[idx][0]
+            except:
+                raise
+            finally:
+                self.mutex.unlock()
+                
+            # Slow operation: Load file
+            try:
+                print(f"Loading {filename}")
+                photo = QPixmap(filename)
+                if photo.isNull():
+                    print(f"{filename} is null")
+                    continue
+                print(f"Loaded {filename}: {photo}")
+            except:
+                raise
+            
+            # Add to the list if the name is the same and the list is still None
+            try:
+                self.mutex.lock()
+                if self.photos[idx] == [filename, None]:
+                    self.photos[idx][1] = photo
+                    self.last_idx = idx
+                    if self.debug: print(f"Saving {idx} to cache")
+                else:
+                    if self.debug: print(f"Photo {idx} is not needed anymore!")
+            except:
+                continue
+            finally:
+                self.mutex.unlock()
+        print("Stopped")
+        
+        
+#%% Main window class
+
 from main_window_ui import Ui_MainWindow
 
 class Window(QMainWindow, Ui_MainWindow):
@@ -216,7 +326,15 @@ class Window(QMainWindow, Ui_MainWindow):
                                                self.groupboxPhoto.geometry().height() - self.scrollbarPhoto.geometry().height())
         self.D_groupboxPhoto_lblPhoto = (self.groupboxPhoto.geometry().width() - self.lblPhoto.geometry().width(), 
                                          self.groupboxPhoto.geometry().height() - self.lblPhoto.geometry().height())
-
+        
+        if args.threaded:
+            self.photoloader = PhotoLoader(debug=False, nocache=True)
+            self.thread = QThread()
+            self.photoloader.moveToThread(self.thread)
+            self.thread.started.connect(self.photoloader.loop)
+            self.thread.finished.connect(self.thread.deleteLater)
+            self.thread.start()
+        
     def eventFilter(self, source, event):
         if type(source) is QWindow and event.type() == QEvent.KeyPress and QApplication.focusWidget() != self.edtComment:
             if event.key() == Qt.Key_D:
@@ -307,7 +425,6 @@ class Window(QMainWindow, Ui_MainWindow):
         self.actionPictureNext.triggered.connect(self.next_photo)
         self.actionPicturePrevious.triggered.connect(self.previous_photo)
         self.actionLoadADMPs.triggered.connect(self.load_ADMPs)
-
         self.cboxAxleGroups.currentIndexChanged.connect(self.setup_scrollbarPhoto)
         self.chkOnlyUnseen.toggled.connect(self.setup_scrollbarPhoto)
         self.scrollbarPhoto.valueChanged.connect(self.load_photo)
@@ -317,16 +434,13 @@ class Window(QMainWindow, Ui_MainWindow):
         self.btnShowPhoto.clicked.connect(lambda: self.load_file('photo'))
         self.edtJumpToPhoto.returnPressed.connect(self.jump_to_photo)
         self.chkZoom.toggled.connect(self.show_photo)
-        
         self.radioIsABus.toggled.connect(lambda: self.set_vehicle_type('bus'))
         self.radioIsATruck.toggled.connect(lambda: self.set_vehicle_type('truck'))
         self.radioIsOther.toggled.connect(lambda: self.set_vehicle_type('other'))
-
         self.edtGroups.textEdited.connect(self.set_groups)
         self.edtRaised.setValidator(RaisedValidator(window=self))
         self.edtRaised.textChanged.connect(self.check_raised)
         self.edtComment.returnPressed.connect(self.set_comment)
-            
         self.radioRed.toggled.connect(lambda: self.set_segment(self.radioRed, 'r'))
         self.radioGrn.toggled.connect(lambda: self.set_segment(self.radioGrn, 'g'))
         self.radioBlu.toggled.connect(lambda: self.set_segment(self.radioBlu, 'b'))
@@ -334,7 +448,6 @@ class Window(QMainWindow, Ui_MainWindow):
         self.radioYel.toggled.connect(lambda: self.set_segment(self.radioYel, 'y'))
         self.radioMag.toggled.connect(lambda: self.set_segment(self.radioMag, 'm'))
         self.radioWht.toggled.connect(lambda: self.set_segment(self.radioWht, 'w'))
-
         self.actionWrongLane.triggered.connect(lambda: self.toggle_checkbox(self.chkWrongLane))
         self.actionOffLane.triggered.connect(lambda: self.toggle_checkbox(self.chkOffLane))
         self.actionPhotoTruncated.triggered.connect(lambda: self.toggle_checkbox(self.chkPhotoTruncated))
@@ -344,7 +457,6 @@ class Window(QMainWindow, Ui_MainWindow):
         self.actionGhostAxle.triggered.connect(lambda: self.toggle_checkbox(self.chkGhostAxle))
         self.actionInconsistentData.triggered.connect(lambda: self.toggle_checkbox(self.chkInconsistentData))
         self.actionCannotLabel.triggered.connect(lambda: self.toggle_checkbox(self.chkCannotLabel))
-        
         self.chkWrongLane.stateChanged.connect(lambda: self.set_error(self.chkWrongLane, 'wrong_lane'))
         self.chkOffLane.stateChanged.connect(lambda: self.set_error(self.chkOffLane, 'off_lane'))
         self.chkPhotoTruncated.stateChanged.connect(lambda: self.set_error(self.chkPhotoTruncated, 'photo_truncated'))
@@ -480,6 +592,8 @@ that you stop working now and investigate the cause of problems!""")
                                  # if not self.chkOnlyUnseen.isChecked() or not load_metadata(x, metadata_filename, seen_by=True)]
                 self.scrollbarPhoto.setMaximum(len(self.selected) - 1)
                 self.scrollbarPhoto.setValue(0)
+                if args.threaded: 
+                    self.photoloader.setup(pngpath(args.photo_root, x) for x in self.selected)
             except:
                 self.scrollbarPhoto.setMaximum(0)
                 self.scrollbarPhoto.setValue(0)
@@ -525,16 +639,25 @@ that you stop working now and investigate the cause of problems!""")
                     win.cboxAxleGroups.setCurrentIndex(0);
                     return
                 self.rv = self.selected[self.scrollbarPhoto.sliderPosition()]
-                filename = pngpath(args.photo_root, self.rv)
-                if not os.path.isfile(filename):
-                    print(f"Cannot load file {filename}")
+                try:
+                    if args.threaded:
+                        filename, self.original_pixmap = self.photoloader.get_photo(self.scrollbarPhoto.sliderPosition())
+                    else:
+                        filename = pngpath(args.photo_root, self.rv)
+                        self.original_pixmap = QPixmap(filename)
+                        if self.original_pixmap.isNull():
+                            raise RuntimeError
+                except:
+                    print(f"Cannot load photo {filename}")
                     beep()
                     self.metadata = None
                     return
-                self.original_pixmap = QPixmap(filename)
-                self.enhanced_pixmap = self.original_pixmap
-                self.show_photo()
+                if int(self.edtAutoContrast.text()):
+                    self.enhanced_pixmap = pil_image_to_qt_pixmap(ImageEnhance.Contrast(qpixmap_to_pil_image(self.original_pixmap)).enhance(1+int(self.edtAutoContrast.text())/100))
+                else:
+                    self.enhanced_pixmap = self.original_pixmap
                 self.metadata = load_metadata(self.rv, metadata_filename)
+                self.show_photo()
                 try:
                     self.last_seen_by = self.metadata['seen_by']
                 except:
@@ -877,8 +1000,7 @@ that you stop working now and investigate the cause of problems!""")
         
 
 
-# Load window and run main loop    
-     
+# Load window
 app = QApplication(sys.argv)
 win = Window()
 win.load_data(rvs_batches)
@@ -887,6 +1009,13 @@ win.load_data(rvs_batches)
 if getpass.getuser() == 'jank':
     win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 46)
 
+# Run main loop
 print("Good lick (ref.: 'Allo 'Allo)")
 win.show()
-sys.exit(app.exec())
+result = app.exec()
+
+# Done
+if args.threaded:
+    win.photoloader.stop()
+print("Bye")
+sys.exit(result)

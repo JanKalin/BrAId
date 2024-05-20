@@ -93,7 +93,7 @@
     <widget class="QCheckBox" name="chkZoom">
      <property name="geometry">
       <rect>
-       <x>310</x>
+       <x>160</x>
        <y>20</y>
        <width>51</width>
        <height>21</height>
@@ -114,6 +114,35 @@
      </property>
      <property name="text">
       <string>Jump to photo:</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="lblAutoContrast">
+     <property name="geometry">
+      <rect>
+       <x>300</x>
+       <y>20</y>
+       <width>91</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Auto Contrast %</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="edtAutoContrast">
+     <property name="geometry">
+      <rect>
+       <x>390</x>
+       <y>20</y>
+       <width>51</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="inputMask">
+      <string>000</string>
+     </property>
+     <property name="text">
+      <string>0</string>
      </property>
     </widget>
    </widget>

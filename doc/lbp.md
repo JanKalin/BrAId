@@ -4,6 +4,10 @@ Jan Kalin <jan.kalin@zag.si>
 
 **Zgodovina izdaj aplikacije in dokumentacije**
 
+v1.10, 20. maj 2024
+
+- Dodan [*Auto Contrast %*](#Popravljanje-slik) pri nalaganju slik
+
 v1.9, 16. maj 2024
 
 - [Dvoklik na sliki](#popravljanje-slik) poveča kontrast ali svetlost za 125%
@@ -242,6 +246,8 @@ Z klikom miške na sliko je možno izvesti preproste popravke slike. V naslednji
 | `dvoklik` `<Desna>`        | Povečanje svetlosti za 125%  |
 | `<Shift>+<Desna>` | Zmanjšanje svetlosti za 25% |
 |  `<Srednja>`      | Vrnitev originalne slike |
+
+Od verzije 1.10 naprej je možno določiti, da se pri nalaganju slike avtomatsko poveča kontrast, če je vrednosti v vnosnem polju *Auto Contrast %* različna od 0.
 
 #### Nastavljanje oznak
 
