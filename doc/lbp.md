@@ -4,6 +4,10 @@ Jan Kalin <jan.kalin@zag.si>
 
 **Zgodovina izdaj aplikacije in dokumentacije**
 
+v1.11, 21. maj 2024
+
+- Poleg timestamp-a vozila se izpiše tudi timestamp slike, oboje v bolj prijaznem formatu
+
 v1.10, 20. maj 2024
 
 - Dodan [*Auto Contrast %*](#Popravljanje-slik) pri nalaganju slik

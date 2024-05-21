@@ -1,4 +1,4 @@
-__version__ = "1.10"
+__version__ = "1.11"
 
 ### Import stuff
 
@@ -676,8 +676,9 @@ that you stop working now and investigate the cause of problems!""")
                     pass
                 self.groupboxPhoto.setTitle(f"Photo {self.scrollbarPhoto.sliderPosition() + 1}/{self.scrollbarPhoto.maximum() + 1}"
                                             + (f" ({len(rvs_batches[self.axle_groups()]) - len(self.selected)} already seen)" if self.chkOnlyUnseen.isChecked() else "")
-                                            + f", ts: {datetime2ts(self.rv['vehicle_timestamp'])}"
+                                            + f", veh. ts: {datetime2ts(self.rv['vehicle_timestamp'], excel=True)}"
                                             + f", photo id: {self.rv['photo_id']}"
+                                            + f", photo ts: {datetime2ts(self.rv['photo_timestamp'], excel=True)}"
                                             + f"{changed}")
             self.load_ADMPs(force_clear=not self.chkAutoLoadADMPs.isChecked())
             self.show_metadata()
