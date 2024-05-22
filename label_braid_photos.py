@@ -1,4 +1,4 @@
-__version__ = "1.11"
+__version__ = "1.12"
 
 ### Import stuff
 
@@ -67,15 +67,15 @@ parser.add_argument("--threaded", help="Use thread to load photos in the backgro
 
 try:
     __IPYTHON__
-    if False and getpass.getuser() == 'jank':
-        args = parser.parse_args(r"--metadata_dir N:\disk_600_konstrukcije\JanK\braid_photo\data".split())
+    if True  and getpass.getuser() == 'jank':
+        args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo e:\yolo_photos --noseen".split())
     else:
         raise Exception
 except:
     args = parser.parse_args()
 
 # Force no threads
-args.threaded = False
+#args.threaded = False
 
 # Index to color and color to index
 i2c = ['r', 'g', 'b', 'c', 'y', 'm', 'w']
@@ -221,7 +221,7 @@ class PhotoLoader(QObject):
             self.mutex.lock()
             if self.photos[idx][1] is not None:
                 if self.debug: print(f"Loading {idx} from cache")
-                return self.photos[idx][1]
+                return self.photos[idx]
             else:
                 self.last_idx = idx
                 if self.debug: print(f"Loading {idx} from disk")
@@ -239,7 +239,7 @@ class PhotoLoader(QObject):
         """Thread running over the list and loading files"""
         while not self.stopped:
             # Half a second per loop is OK
-            time.sleep(0.25)
+            time.sleep(0.50)
             print("Here")
             
             # Fast operations: continue if we don't have photos or we have loaded all photos
@@ -327,8 +327,11 @@ class Window(QMainWindow, Ui_MainWindow):
         self.D_groupboxPhoto_lblPhoto = (self.groupboxPhoto.geometry().width() - self.lblPhoto.geometry().width(), 
                                          self.groupboxPhoto.geometry().height() - self.lblPhoto.geometry().height())
         
+        for s in ['NONE', 'Bus', 'Truck']:
+            self.cboxExpectedVehicleType.addItem(s)
+        
         if args.threaded:
-            self.photoloader = PhotoLoader(debug=False, nocache=True)
+            self.photoloader = PhotoLoader(debug=True, nocache=False)
             self.thread = QThread()
             self.photoloader.moveToThread(self.thread)
             self.thread.started.connect(self.photoloader.loop)
@@ -652,8 +655,13 @@ that you stop working now and investigate the cause of problems!""")
                     beep()
                     self.metadata = None
                     return
-                if int(self.edtAutoContrast.text()):
-                    self.enhanced_pixmap = pil_image_to_qt_pixmap(ImageEnhance.Contrast(qpixmap_to_pil_image(self.original_pixmap)).enhance(1+int(self.edtAutoContrast.text())/100))
+                if int(self.edtAutoContrast.text()) or int(self.edtAutoBrightness.text()):
+                    enhanced_pixmap = self.original_pixmap
+                    if int(self.edtAutoContrast.text()):
+                        enhanced_pixmap = pil_image_to_qt_pixmap(ImageEnhance.Contrast(qpixmap_to_pil_image(enhanced_pixmap)).enhance(1+int(self.edtAutoContrast.text())/100))
+                    if int(self.edtAutoBrightness.text()):
+                        enhanced_pixmap = pil_image_to_qt_pixmap(ImageEnhance.Brightness(qpixmap_to_pil_image(enhanced_pixmap)).enhance(1+int(self.edtAutoBrightness.text())/100))
+                    self.enhanced_pixmap = enhanced_pixmap
                 else:
                     self.enhanced_pixmap = self.original_pixmap
                 self.metadata = load_metadata(self.rv, metadata_filename)
@@ -811,6 +819,7 @@ that you stop working now and investigate the cause of problems!""")
                     
         finally:
             self.updating_metadata = False
+            self.setFocus()
             
     def set_vehicle_type_radio_button(self):
         """Sets vehicle type radio button"""
@@ -830,8 +839,16 @@ that you stop working now and investigate the cause of problems!""")
             self.radioIsABus.setChecked(True)
         elif vehicle_type == 'truck' and not self.radioIsATruck.isChecked():
             self.radioIsATruck.setChecked(True)
+            if self.cboxExpectedVehicleType.currentText() not in ['NONE', 'Truck']:
+                self.radioIsATruck.setStyleSheet("background-color: rgb(255, 49, 49);")
         elif vehicle_type == 'other' and not self.radioIsOther.isChecked():
             self.radioIsOther.setChecked(True)
+        for radio in [self.radioIsABus, self.radioIsATruck, self.radioIsOther]:
+            radio.setStyleSheet("")
+        if vehicle_type == 'bus' and self.cboxExpectedVehicleType.currentText() not in ['NONE', 'Bus']:
+            self.radioIsABus.setStyleSheet("color: rgb(255, 255, 255); background-color: rgb(255, 49, 49);")
+        if vehicle_type == 'truck' and self.cboxExpectedVehicleType.currentText() not in ['NONE', 'Truck']:
+            self.radioIsATruck.setStyleSheet("color: rgb(255, 255, 255); background-color: rgb(255, 49, 49);")
         
     def set_chkAutoLoadADMPs(self):
         """Perhaps clears ADMPs"""

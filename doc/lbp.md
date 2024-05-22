@@ -4,6 +4,13 @@ Jan Kalin <jan.kalin@zag.si>
 
 **Zgodovina izdaj aplikacije in dokumentacije**
 
+v1.12, 22. maj 2024
+
+- Dodan [*Auto Brightness %*](#popravljanje-slik) pri nalaganju slik
+- Dodana je možnost [*Expected Vehicle Type*](#Select-vehicle-groups-for-labelling) v okvirčku *Select vehicle groups for labelling*
+- Oznaka [*Cannot Label*](#Splošne-oznake) se sedaj imenuje *Cannot label / not found*
+- Spremenjena je postavitev kontrol za označevanje tako, da so najpogosteje uporabljene čim bližje sliki
+
 v1.11, 21. maj 2024
 
 - Poleg timestamp-a vozila se izpiše tudi timestamp slike, oboje v bolj prijaznem formatu
@@ -56,7 +63,7 @@ v1.2, 29. marec 2024
 
 v1.1, 27. marec 2024
 
-- Velike množice vozil (npr., tovornjaki s skupinam 113) so razdeljene na podmnožice moči 1000.
+- Velike množice vozil (npr., tovornjaki s skupinam 113) so razdeljene na podmnožice moči 1000
 - Bližnjice so brez `<Alt>`
 - Nov način opisovanja dvignjenih osi
 - Dodana oznaka **Nekonsistentni Podatki**
@@ -199,7 +206,9 @@ Velike množice vozil (npr., tovornjaki s skupinami 113) so razdeljene na podmno
 
 Potrditveno polje *Only unseen* omogoča nalaganje samo tistih slik, ki jih še noben ni videl. Trenutno je ta možnost onemogočena, ker zmeša oštevilčenje slik. Ponovno bo omogočena skupaj z možnostjo *Only with comments*.
 
-Ko je slika naložena, jo je možno s klikom na *Show photo in viewer* naložiti v eksterni pregledovalnik slik.
+Z izbiro ene izmed možnosti s spiska *Expected Vehicle Type* lahko nastavimo pričakovan tip vozila. Če je tip vozila drugačen, se prikaže na rdečem ozadju, kot je to prikazano na naslednji sliki. Če so tipi v določeni skupini vozil pretežno mešani, morda to ni tako uporabno, pri skupinah osi, npr., 113, kjer avtobusa ni, pa lahko precej zmanjša možnost da spregledamo napačno označeno vozilo.
+
+![expected_type](expected_type.png)
 
 #### *ADMPs*
 
@@ -221,7 +230,9 @@ Ko se izbere skupine osi, se v razdelku *Photo* takoj pojavi prva fotografija zn
 
 ![photo](photo.png)
 
-V imenu razdelka je napisana zaporedna številka vozila, število vseh vozil, timestamp vozila, ID fotografije ter *ORIGINAL*, če oznake slike niso bile spremenjene ali `CHANGED`, če so bile. Na vrhu razdelka je izpisano uporabniško ime zadnjega, ki je fotografijo videl ter, če so bile oznake spremenjene, ime uporabnika, ki je zadnji spreminjal oznake.
+V imenu razdelka je napisana zaporedna številka vozila, število vseh vozil, timestamp vozila, ID fotografije ter *ORIGINAL*, če oznake slike niso bile spremenjene ali `CHANGED`, če so bile. 
+
+Ko je slika naložena, jo je možno s klikom na *Show photo in viewer* naložiti v eksterni pregledovalnik slik.
 
 ###### Izbira fotografije
 
@@ -251,9 +262,11 @@ Z klikom miške na sliko je možno izvesti preproste popravke slike. V naslednji
 | `<Shift>+<Desna>` | Zmanjšanje svetlosti za 25% |
 |  `<Srednja>`      | Vrnitev originalne slike |
 
-Od verzije 1.10 naprej je možno določiti, da se pri nalaganju slike avtomatsko poveča kontrast, če je vrednosti v vnosnem polju *Auto Contrast %* različna od 0.
+Od verzije 1.10 naprej je možno določiti, da se pri nalaganju slike avtomatsko poveča kontrast, če je vrednosti v vnosnem polju *Auto Contrast %* različna od 0, od verzije 1.12 naprej pa tudi svetlost, za vrednost v vnosnem polju *Auto Brightness %*.
 
 #### Nastavljanje oznak
+
+Na vrhu razdelka je izpisano uporabniško ime zadnjega, ki je fotografijo videl ter, če so bile oznake spremenjene, ime uporabnika, ki je zadnji spreminjal oznake.
 
 V zgornjem delu razdelka *Label* so polja s katerimi lahko spreminjamo oznake. Skoraj vsa polja imajo asociirano bližnjico, ki je bila izbrana tako, da minimizira porabljen čas in premikanje prstov na tastaturi.
 
@@ -310,7 +323,7 @@ Funkcija *fix* pa je bila implementirana v zunanji Python skripti in je delovala
 
   Tedaj se lahko uporabi bližnjico `M` za ***M**ultiple vehicles*.
 
-- Zadnjo možnost se uporabi, ko ni dovolj informacij, da bi sploh pregledal sliko in jo označil (ali pa ne). Tedaj se uporabi **Ne morem označiti**. Bližnjica je `N` za *Ca**n**not label*.
+- Zadnjo možnost se uporabi, ko ni dovolj informacij, da bi sploh pregledal sliko in jo označil (ali pa ne). Lahko pa YOLO sploh ni našel pravega vozila. Tedaj se uporabi **Ne morem označiti**. Bližnjica je `N` za *Ca**n**not label / not found*.
 
 ##### Komentar
 
