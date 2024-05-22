@@ -837,6 +837,10 @@
     <addaction name="actionGhostAxle"/>
     <addaction name="actionVehicleSplit"/>
     <addaction name="actionVehicleJoined"/>
+    <addaction name="actionRaisedIn2ndGroup"/>
+    <addaction name="actionRaisedIn3rdGroup"/>
+    <addaction name="actionRaisedIn4thGroup"/>
+    <addaction name="actionRaisedIn5thGroup"/>
     <addaction name="separator"/>
     <addaction name="actionCannotLabel"/>
     <addaction name="actionInconsistentData"/>
@@ -985,6 +989,38 @@
    </property>
    <property name="shortcut">
     <string>Alt+J</string>
+   </property>
+  </action>
+  <action name="actionRaisedIn2ndGroup">
+   <property name="text">
+    <string>Raised in 2nd Group</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+2</string>
+   </property>
+  </action>
+  <action name="actionRaisedIn3rdGroup">
+   <property name="text">
+    <string>Raised in 3rd Group</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+3</string>
+   </property>
+  </action>
+  <action name="actionRaisedIn4thGroup">
+   <property name="text">
+    <string>Raised in 4th Group</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+4</string>
+   </property>
+  </action>
+  <action name="actionRaisedIn5thGroup">
+   <property name="text">
+    <string>Raised in 5th Group</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+5</string>
    </property>
   </action>
  </widget>

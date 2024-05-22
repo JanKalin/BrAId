@@ -9,6 +9,7 @@ v1.12, 22. maj 2024
 - Dodan [*Auto Brightness %*](#popravljanje-slik) pri nalaganju slik
 - Dodana je možnost [*Expected Vehicle Type*](#Select-vehicle-groups-for-labelling) v okvirčku *Select vehicle groups for labelling*
 - Oznaka [*Cannot Label*](#Splošne-oznake) se sedaj imenuje *Cannot label / not found*
+- Dodane bližnjice za [dvignjene osi](#Osi,-grupe-in-dvignjene-osi)
 - Spremenjena je postavitev kontrol za označevanje tako, da so najpogosteje uporabljene čim bližje sliki
 
 v1.11, 21. maj 2024
@@ -289,6 +290,10 @@ V polju *Groups* se prikažejo trenutno detektirane skupine osi, npr., 113. Če 
 V polju *Raised* se navede grupo v kateri je dvignjena os. Tipičen primer je, ko šleper dvigne prvo os v trojčku na polpriklopniku. Tedaj bi SiWIM detektiral skupine 112. V tem primeru v polje *Raised* vpišemo vrednost `3` (ker je manjkajoča os v tretji skupini osi). Lahko je dvignjenih več os, tedaj z vejico ločimo grupe z dvignjenimi osmi. V fiktivnem primeru, ko bi polpriklopnik dvignil dve osi v trojni osi, pa še vlekel bi priklopnik z eno dvignjeno osjo od dveh, bi v polje vnesel `3,3,4`.
 
 Pri spreminjanju polja *Raised* aplikacija samodejno popravi vrednost v polju *Groups*, v tem primeru bi se skupine 112 spremenile v 113.  Po tem je seveda možno še ročno popraviti polje *Groups*.
+
+Za hitrejše nastavljanje dvignjenih osi so na voljo bližnjice `<Alt>+<N>`, kjer je `<N>` tipka od 2 do 5.
+
+
 
 N.B.: Pri avtomatskem spreminjanju polja *Groups*, se za izhodišče vedno vzame originalno vrednost. Torej, če vozilu 122 ročno popravimo grupe na 123, potem pa še v polju *Raised* določimo dvignjeno osi v drugi grupi z vnosom vrednosti `2`, bo aplikacija zavrgla ročno spremembo skupin in končni rezultat bodo skupine 132.
 

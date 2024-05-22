@@ -67,7 +67,7 @@ parser.add_argument("--threaded", help="Use thread to load photos in the backgro
 
 try:
     __IPYTHON__
-    if True  and getpass.getuser() == 'jank':
+    if False and getpass.getuser() == 'jank':
         args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo e:\yolo_photos --noseen".split())
     else:
         raise Exception
@@ -428,22 +428,31 @@ class Window(QMainWindow, Ui_MainWindow):
         self.actionPictureNext.triggered.connect(self.next_photo)
         self.actionPicturePrevious.triggered.connect(self.previous_photo)
         self.actionLoadADMPs.triggered.connect(self.load_ADMPs)
+        
         self.cboxAxleGroups.currentIndexChanged.connect(self.setup_scrollbarPhoto)
         self.chkOnlyUnseen.toggled.connect(self.setup_scrollbarPhoto)
         self.scrollbarPhoto.valueChanged.connect(self.load_photo)
         self.chkAutoLoadADMPs.toggled.connect(self.set_chkAutoLoadADMPs)
+        
         self.btnShowADMPEvent.clicked.connect(lambda: self.load_file('ADMP'))
         self.btnShowCFEvent.clicked.connect(lambda: self.load_file('CF'))
         self.btnShowPhoto.clicked.connect(lambda: self.load_file('photo'))
         self.edtJumpToPhoto.returnPressed.connect(self.jump_to_photo)
         self.chkZoom.toggled.connect(self.show_photo)
+        
         self.radioIsABus.toggled.connect(lambda: self.set_vehicle_type('bus'))
         self.radioIsATruck.toggled.connect(lambda: self.set_vehicle_type('truck'))
         self.radioIsOther.toggled.connect(lambda: self.set_vehicle_type('other'))
+        
         self.edtGroups.textEdited.connect(self.set_groups)
         self.edtRaised.setValidator(RaisedValidator(window=self))
         self.edtRaised.textChanged.connect(self.check_raised)
+        self.actionRaisedIn2ndGroup.triggered.connect(lambda: self.add_raised('2'))
+        self.actionRaisedIn3rdGroup.triggered.connect(lambda: self.add_raised('3'))
+        self.actionRaisedIn4thGroup.triggered.connect(lambda: self.add_raised('4'))
+        self.actionRaisedIn5thGroup.triggered.connect(lambda: self.add_raised('5'))
         self.edtComment.returnPressed.connect(self.set_comment)
+        
         self.radioRed.toggled.connect(lambda: self.set_segment(self.radioRed, 'r'))
         self.radioGrn.toggled.connect(lambda: self.set_segment(self.radioGrn, 'g'))
         self.radioBlu.toggled.connect(lambda: self.set_segment(self.radioBlu, 'b'))
@@ -451,6 +460,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.radioYel.toggled.connect(lambda: self.set_segment(self.radioYel, 'y'))
         self.radioMag.toggled.connect(lambda: self.set_segment(self.radioMag, 'm'))
         self.radioWht.toggled.connect(lambda: self.set_segment(self.radioWht, 'w'))
+        
         self.actionWrongLane.triggered.connect(lambda: self.toggle_checkbox(self.chkWrongLane))
         self.actionOffLane.triggered.connect(lambda: self.toggle_checkbox(self.chkOffLane))
         self.actionPhotoTruncated.triggered.connect(lambda: self.toggle_checkbox(self.chkPhotoTruncated))
@@ -460,6 +470,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.actionGhostAxle.triggered.connect(lambda: self.toggle_checkbox(self.chkGhostAxle))
         self.actionInconsistentData.triggered.connect(lambda: self.toggle_checkbox(self.chkInconsistentData))
         self.actionCannotLabel.triggered.connect(lambda: self.toggle_checkbox(self.chkCannotLabel))
+        
         self.chkWrongLane.stateChanged.connect(lambda: self.set_error(self.chkWrongLane, 'wrong_lane'))
         self.chkOffLane.stateChanged.connect(lambda: self.set_error(self.chkOffLane, 'off_lane'))
         self.chkPhotoTruncated.stateChanged.connect(lambda: self.set_error(self.chkPhotoTruncated, 'photo_truncated'))
@@ -973,6 +984,13 @@ that you stop working now and investigate the cause of problems!""")
         else:
             color = '#f6989d' # red
         sender.setStyleSheet('QLineEdit { background-color: %s }' % color)        
+
+    def add_raised(self, group):
+        """Adds to the edtRaised text"""
+        if self.edtRaised.text():
+            self.edtRaised.setText(','.join(self.edtRaised.text().split(',') + [group]))
+        else:
+            self.edtRaised.setText(group)
 
     def set_raised(self):
         """Sets raised axles"""
