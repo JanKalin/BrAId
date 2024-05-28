@@ -45,6 +45,7 @@ metadatafile = os.path.join(SCRIPT_DIR, 'data', 'metadata.hdf5')
 print("Generating helper sets, ", end='')
 sys.stdout.flush()
 reconstructed = set([x.timestamp.timestamp() for x in vehicles if x.vehiclereconstructedflag()])
+manually_changed = set([x.timestamp.timestamp() for x in vehicles if x.manuallychangedflags()])
 fixed = set([x.timestamp.timestamp() for x in vehicles if x.qafixedflag()])
 lane1 = set([x.timestamp.timestamp() for x in vehicles if not x.lane])
 v2e_all = {x.timestamp.timestamp(): x.event_timestamp.timestamp() for x in vehicles}
@@ -60,19 +61,21 @@ sys.stdout.flush()
 
 #%% Perhaps just set reconstructed and fixed flags
 
-set_reconstructed_and_fixed = True
+set_reconstructed_and_fixed_and_multiple_vehicle = False
+set_manually_changed = True
+countonly = False
 
 noprogress = False
 
 tochange = []
-if set_reconstructed_and_fixed:
-    print("Setting reconstructed, fixed and multiple_vehicle flags")
+if set_reconstructed_and_fixed_and_multiple_vehicle or set_manually_changed:
+    print("Setting reconstructed, fixed, manually fixed and multiple_vehicle flags")
     if not noprogress: progress = Progress("Processing {} photos... {{}}% ".format(len(rvs)), len(rvs))
     for rv in rvs:
         if not noprogress: progress.step()
         metadata = None
         
-        if multiple_vehicles[v2e_all[rv['vehicle_timestamp']]]:
+        if multiple_vehicles[v2e_all[rv['vehicle_timestamp']]] and set_reconstructed_and_fixed_and_multiple_vehicle:
             metadata = load_metadata(rv, metadatafile)
             try:
                 metadata['errors']
@@ -81,7 +84,9 @@ if set_reconstructed_and_fixed:
             metadata['errors']['multiple_vehicles'] = 2
             tochange.append(datetime.datetime.fromtimestamp(rv['vehicle_timestamp']).isoformat())
             
-        if rv['vehicle_timestamp'] in lane1 and (rv['vehicle_timestamp'] in reconstructed or rv['vehicle_timestamp'] in fixed):
+        if (rv['vehicle_timestamp'] in lane1
+            and (rv['vehicle_timestamp'] in reconstructed or rv['vehicle_timestamp'] in fixed)
+            and set_reconstructed_and_fixed_and_multiple_vehicle):
             if metadata is None:
                 metadata = load_metadata(rv, metadatafile)
                 try:
@@ -92,9 +97,27 @@ if set_reconstructed_and_fixed:
                 metadata['errors']['reconstructed'] = 2
             if rv['vehicle_timestamp'] in fixed:
                 metadata['errors']['fixed'] = 2
+
+        if (rv['vehicle_timestamp'] in lane1
+            and rv['vehicle_timestamp'] in manually_changed
+            and set_manually_changed):
+            if metadata is None:
+                metadata = load_metadata(rv, metadatafile)
+                try:
+                    metadata['errors']
+                except:
+                    metadata['errors'] = {}
+            metadata['errors']['fixed'] = 2
+
         if metadata is not None:
-            save_metadata(rv, metadata, metadatafile)
+            if countonly:
+                tochange.append(rv)
+            else:
+                save_metadata(rv, metadata, metadatafile)
             
+    if countonly:
+        print(f"Will set metadata for {len(tochange)} vehicles")
+        
     raise SystemExit
 
 #%% Now change busses for trucks
