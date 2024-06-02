@@ -1,4 +1,4 @@
-__version__ = "1.12"
+__version__ = "1.13"
 
 ### Import stuff
 
@@ -39,7 +39,7 @@ sys.path.append(os.path.join(os.path.dirname(SCRIPT_DIR), '..', 'siwim-pi'))
 
 from swm.factory import read_file
 from swm.filesys import FS
-from swm.utils import datetime2ts, str2groups, groups2str
+from swm.utils import datetime2ts, str2groups, groups2str, Progress
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -67,7 +67,8 @@ parser.add_argument("--threaded", help="Use thread to load photos in the backgro
 
 try:
     __IPYTHON__
-    if False and getpass.getuser() == 'jank':
+    if True and getpass.getuser() == 'jank':
+        # args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo e:\yolo_photos --noseen".split())
         args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo e:\yolo_photos --noseen".split())
     else:
         raise Exception
@@ -379,6 +380,9 @@ class Window(QMainWindow, Ui_MainWindow):
             elif event.key() == Qt.Key_M:
                 self.chkMultipleVehicles.setCheckState(0 if self.chkMultipleVehicles.checkState() else 2)
                 return True
+            elif event.key() == Qt.Key_Y:
+                self.chkYOLOError.setCheckState(0 if self.chkYOLOError.checkState() else 2)
+                return True
             elif event.key() == Qt.Key_Z:
                 self.chkZoom.setCheckState(0 if self.chkZoom.checkState() else 2)
                 self.show_photo()
@@ -478,9 +482,13 @@ class Window(QMainWindow, Ui_MainWindow):
         self.chkVehicleJoined.stateChanged.connect(lambda: self.set_error(self.chkVehicleJoined, 'vehicle_joined'))
         self.chkCrosstalk.stateChanged.connect(lambda: self.set_error(self.chkCrosstalk, 'crosstalk'))
         self.chkGhostAxle.stateChanged.connect(lambda: self.set_error(self.chkGhostAxle, 'ghost_axle'))
-        self.chkInconsistentData.stateChanged.connect(lambda: self.set_error(self.chkInconsistentData, 'inconsistent_data'))
         self.chkMultipleVehicles.stateChanged.connect(lambda: self.set_error(self.chkMultipleVehicles, 'multiple_vehicles'))
+        self.chkInconsistentData.stateChanged.connect(lambda: self.set_error(self.chkInconsistentData, 'inconsistent_data'))
         self.chkCannotLabel.stateChanged.connect(lambda: self.set_error(self.chkCannotLabel, 'cannot_label'))
+        self.chkYOLOError.stateChanged.connect(lambda: self.set_error(self.chkYOLOError, 'yolo_error'))
+        
+        if args.noseen_by:
+            self.actionDevelOptions.triggered.connect(self.batch_update_seen)
         
     def resizeEvent(self, event):
         """Called when main window size changes, resizes groupboxPhoto and
@@ -820,6 +828,10 @@ that you stop working now and investigate the cause of problems!""")
                 except:
                     self.chkMultipleVehicles.setCheckState(False)
                 try:
+                    self.chkYOLOError.setCheckState(self.metadata['errors']['yolo_error'])
+                except:
+                    self.chkYOLOError.setCheckState(False)
+                try:
                     self.lblReconstructed.setStyleSheet("background-color: rgb(0, 255, 0);" if self.metadata['errors']['reconstructed'] else "")
                 except:
                     self.lblReconstructed.setStyleSheet("")
@@ -1034,6 +1046,13 @@ that you stop working now and investigate the cause of problems!""")
         self.save_changed_metadata()
         self.setFocus()
         
+    def batch_update_seen(self):
+        progress = Progress(f"{self.cboxAxleGroups.currentText()}: {{}}%", len(self.selected))
+        for rv in self.selected:
+            progress.step()
+            metadata = load_metadata(rv, metadata_filename)
+            metadata['seen_by'] = (datetime.datetime.now().timestamp(), getpass.getuser())
+            save_metadata(rv, metadata, metadata_filename, timeout=args.timeout)
 
 
 # Load window

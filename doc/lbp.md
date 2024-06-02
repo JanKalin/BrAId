@@ -4,6 +4,11 @@ Jan Kalin <jan.kalin@zag.si>
 
 **Zgodovina izdaj aplikacije in dokumentacije**
 
+v1.13, 28. maj 2024
+
+- Dodana oznaka [*YOLO Error*](#Splošne-oznake)
+- Oznaka *Več vozil* je prestavljena med [WIM oznake](#WIM-oznake)
+
 v1.12, 22. maj 2024
 
 - Dodan [*Auto Brightness %*](#popravljanje-slik) pri nalaganju slik
@@ -308,7 +313,10 @@ N.B.: Pri avtomatskem spreminjanju polja *Groups*, se za izhodišče vedno vzame
 - **Presluh:** Včasih pride do presluha z enega pasu na drugega in vozilo se pojavi na obeh pasovih. Bližnjica je `R` za *C**r**osstalk*.
 - **Navidezna os:** To je mišljeno predvsem za osi pred ali po legitimnem vozilu, ne odvečno osi znotraj vozila. Bližnjica = `G` za ***G**host axle*.
 - **Vozilo razpolovljeno:** Če je medosna razdalja v kakšnem vozilu daljša od najdaljše v klasifikacijski tabeli, SiWIM razpolovi vozilo med tema osema v dve vozili. Bližnjica je `S` za ***S**plit*.
-- Vozilo združeno: Če si dve vozili sledita preblizu eno drugemu, jih SiWIM združi v eno vozilo. Bližnjica je `J` za ***J**oined*.
+- **Vozilo združeno:** Če si dve vozili sledita preblizu eno drugemu, jih SiWIM združi v eno vozilo. Bližnjica je `J` za ***J**oined*.
+- **Več vozil:** Da bi se začetno raziskovanje FAMNITa omejilo samo na dogodke v katerih je prisotno samo eno vozilo, se označi vozilo, ki ni samo v dogodku. Načeloma je ta napaka že strojno nastavljena iz informacij iz NSWD, lahko pa se zgodi, da kakšen primer uide.
+
+  Tedaj se lahko uporabi bližnjico `M` za ***M**ultiple vehicles*.
 
 ###### Rekonstruirane in popravljene osi
 
@@ -324,9 +332,7 @@ Funkcija *fix* pa je bila implementirana v zunanji Python skripti in je delovala
 
   Tedaj se lahko preveri stanje z ogledom originalnih podatkov (*Show CF event in viewer*) in označi napako. Bližnjica je `I`, za ***I**nconsistent data*.
 
-- **Več vozil:** Da bi se začetno raziskovanje FAMNITa omejilo samo na dogodke v katerih je prisotno samo eno vozilo, se označi vozilo, ki ni samo v dogodku. Načeloma je ta napaka že strojno nastavljena iz informacij iz NSWD, lahko pa se zgodi, da kakšen primer uide.
-
-  Tedaj se lahko uporabi bližnjico `M` za ***M**ultiple vehicles*.
+- **YOLO napaka:** Včasih YOLO ne najde vozila ali pa označi samo napačno vozilo. Bližnjica je `Y` za ***Y**OLO error*.
 
 - Zadnjo možnost se uporabi, ko ni dovolj informacij, da bi sploh pregledal sliko in jo označil (ali pa ne). Lahko pa YOLO sploh ni našel pravega vozila. Tedaj se uporabi **Ne morem označiti**. Bližnjica je `N` za *Ca**n**not label / not found*.
 

@@ -303,7 +303,7 @@
      <widget class="QCheckBox" name="chkGhostAxle">
       <property name="geometry">
        <rect>
-        <x>12</x>
+        <x>10</x>
         <y>40</y>
         <width>70</width>
         <height>17</height>
@@ -316,7 +316,7 @@
      <widget class="QCheckBox" name="chkCrosstalk">
       <property name="geometry">
        <rect>
-        <x>12</x>
+        <x>10</x>
         <y>20</y>
         <width>70</width>
         <height>17</height>
@@ -355,14 +355,14 @@
      <widget class="QLabel" name="lblReconstructed">
       <property name="geometry">
        <rect>
-        <x>30</x>
+        <x>77</x>
         <y>60</y>
-        <width>71</width>
+        <width>41</width>
         <height>16</height>
        </rect>
       </property>
       <property name="text">
-       <string>Reconstructed</string>
+       <string>Recons.</string>
       </property>
      </widget>
      <widget class="QLabel" name="lblFixed">
@@ -376,6 +376,19 @@
       </property>
       <property name="text">
        <string>Fixed</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="chkMultipleVehicles">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>60</y>
+        <width>61</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Multiple</string>
       </property>
      </widget>
     </widget>
@@ -417,17 +430,17 @@
        <string>Cannot label / not found</string>
       </property>
      </widget>
-     <widget class="QCheckBox" name="chkMultipleVehicles">
+     <widget class="QCheckBox" name="chkYOLOError">
       <property name="geometry">
        <rect>
         <x>10</x>
         <y>60</y>
-        <width>111</width>
+        <width>70</width>
         <height>17</height>
        </rect>
       </property>
       <property name="text">
-       <string>Multiple vehicles</string>
+       <string>Yolo error</string>
       </property>
      </widget>
     </widget>
@@ -844,6 +857,9 @@
     <addaction name="separator"/>
     <addaction name="actionCannotLabel"/>
     <addaction name="actionInconsistentData"/>
+    <addaction name="separator"/>
+    <addaction name="actionDevelOptions"/>
+    <addaction name="separator"/>
    </widget>
    <addaction name="menuPhoto"/>
    <addaction name="mnuHelp"/>
@@ -1021,6 +1037,14 @@
    </property>
    <property name="shortcut">
     <string>Alt+5</string>
+   </property>
+  </action>
+  <action name="actionDevelOptions">
+   <property name="text">
+    <string>Devel Options</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+D</string>
    </property>
   </action>
  </widget>
