@@ -93,7 +93,7 @@
     <widget class="QCheckBox" name="chkZoom">
      <property name="geometry">
       <rect>
-       <x>310</x>
+       <x>140</x>
        <y>20</y>
        <width>51</width>
        <height>21</height>
@@ -114,6 +114,64 @@
      </property>
      <property name="text">
       <string>Jump to photo:</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="lblAutoContrast">
+     <property name="geometry">
+      <rect>
+       <x>230</x>
+       <y>20</y>
+       <width>91</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Auto Contrast %</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="edtAutoContrast">
+     <property name="geometry">
+      <rect>
+       <x>320</x>
+       <y>20</y>
+       <width>51</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="inputMask">
+      <string>000</string>
+     </property>
+     <property name="text">
+      <string>0</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="lblAutoBrightness">
+     <property name="geometry">
+      <rect>
+       <x>400</x>
+       <y>20</y>
+       <width>91</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Auto Brightness %</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="edtAutoBrightness">
+     <property name="geometry">
+      <rect>
+       <x>490</x>
+       <y>20</y>
+       <width>51</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="inputMask">
+      <string>000</string>
+     </property>
+     <property name="text">
+      <string>0</string>
      </property>
     </widget>
    </widget>
@@ -158,7 +216,7 @@
      </property>
      <property name="geometry">
       <rect>
-       <x>270</x>
+       <x>240</x>
        <y>30</y>
        <width>81</width>
        <height>21</height>
@@ -168,6 +226,29 @@
       <string>Only unseen</string>
      </property>
     </widget>
+    <widget class="QComboBox" name="cboxExpectedVehicleType">
+     <property name="geometry">
+      <rect>
+       <x>520</x>
+       <y>30</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="lblExpectedVehicleType">
+     <property name="geometry">
+      <rect>
+       <x>400</x>
+       <y>30</y>
+       <width>121</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Expected Vehicle Type:</string>
+     </property>
+    </widget>
    </widget>
    <widget class="QGroupBox" name="groupboxLabel">
     <property name="geometry">
@@ -175,7 +256,7 @@
       <x>10</x>
       <y>140</y>
       <width>611</width>
-      <height>171</height>
+      <height>191</height>
      </rect>
     </property>
     <property name="title">
@@ -210,9 +291,9 @@
     <widget class="QGroupBox" name="groupboxWimErrors">
      <property name="geometry">
       <rect>
-       <x>420</x>
+       <x>430</x>
        <y>10</y>
-       <width>181</width>
+       <width>171</width>
        <height>81</height>
       </rect>
      </property>
@@ -248,7 +329,7 @@
      <widget class="QCheckBox" name="chkVehicleSplit">
       <property name="geometry">
        <rect>
-        <x>120</x>
+        <x>110</x>
         <y>20</y>
         <width>41</width>
         <height>17</height>
@@ -261,7 +342,7 @@
      <widget class="QCheckBox" name="chkVehicleJoined">
       <property name="geometry">
        <rect>
-        <x>120</x>
+        <x>110</x>
         <y>40</y>
         <width>51</width>
         <height>17</height>
@@ -274,20 +355,20 @@
      <widget class="QLabel" name="lblReconstructed">
       <property name="geometry">
        <rect>
-        <x>28</x>
+        <x>77</x>
         <y>60</y>
-        <width>71</width>
+        <width>41</width>
         <height>16</height>
        </rect>
       </property>
       <property name="text">
-       <string>Reconstructed</string>
+       <string>Recons.</string>
       </property>
      </widget>
      <widget class="QLabel" name="lblFixed">
       <property name="geometry">
        <rect>
-        <x>140</x>
+        <x>130</x>
         <y>60</y>
         <width>31</width>
         <height>16</height>
@@ -297,13 +378,26 @@
        <string>Fixed</string>
       </property>
      </widget>
+     <widget class="QCheckBox" name="chkMultipleVehicles">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>60</y>
+        <width>61</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Multiple</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QGroupBox" name="groupBox">
      <property name="geometry">
       <rect>
        <x>270</x>
        <y>10</y>
-       <width>131</width>
+       <width>151</width>
        <height>81</height>
       </rect>
      </property>
@@ -328,33 +422,33 @@
        <rect>
         <x>10</x>
         <y>20</y>
-        <width>101</width>
+        <width>141</width>
         <height>17</height>
        </rect>
       </property>
       <property name="text">
-       <string>Cannot label</string>
+       <string>Cannot label / not found</string>
       </property>
      </widget>
-     <widget class="QCheckBox" name="chkMultipleVehicles">
+     <widget class="QCheckBox" name="chkYOLOError">
       <property name="geometry">
        <rect>
         <x>10</x>
         <y>60</y>
-        <width>111</width>
+        <width>70</width>
         <height>17</height>
        </rect>
       </property>
       <property name="text">
-       <string>Multiple vehicles</string>
+       <string>Yolo error</string>
       </property>
      </widget>
     </widget>
     <widget class="QGroupBox" name="groupboxVehicleType">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>80</y>
+       <x>530</x>
+       <y>100</y>
        <width>71</width>
        <height>81</height>
       </rect>
@@ -367,7 +461,7 @@
        <rect>
         <x>10</x>
         <y>40</y>
-        <width>61</width>
+        <width>51</width>
         <height>16</height>
        </rect>
       </property>
@@ -380,7 +474,7 @@
        <rect>
         <x>10</x>
         <y>20</y>
-        <width>61</width>
+        <width>51</width>
         <height>16</height>
        </rect>
       </property>
@@ -408,8 +502,8 @@
     <widget class="QGroupBox" name="groupboxAxles">
      <property name="geometry">
       <rect>
-       <x>90</x>
-       <y>80</y>
+       <x>10</x>
+       <y>100</y>
        <width>171</width>
        <height>81</height>
       </rect>
@@ -469,8 +563,8 @@
       <rect>
        <x>270</x>
        <y>100</y>
-       <width>331</width>
-       <height>61</height>
+       <width>251</width>
+       <height>81</height>
       </rect>
      </property>
      <property name="title">
@@ -480,7 +574,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>40</y>
+        <y>20</y>
         <width>81</width>
         <height>17</height>
        </rect>
@@ -492,8 +586,8 @@
      <widget class="QCheckBox" name="chkOffLane">
       <property name="geometry">
        <rect>
-        <x>110</x>
-        <y>40</y>
+        <x>10</x>
+        <y>60</y>
         <width>70</width>
         <height>17</height>
        </rect>
@@ -505,7 +599,7 @@
      <widget class="QCheckBox" name="chkPhotoTruncated">
       <property name="geometry">
        <rect>
-        <x>210</x>
+        <x>10</x>
         <y>40</y>
         <width>111</width>
         <height>17</height>
@@ -518,7 +612,7 @@
      <widget class="QRadioButton" name="radioRed">
       <property name="geometry">
        <rect>
-        <x>10</x>
+        <x>200</x>
         <y>20</y>
         <width>41</width>
         <height>17</height>
@@ -537,7 +631,7 @@
      <widget class="QRadioButton" name="radioGrn">
       <property name="geometry">
        <rect>
-        <x>60</x>
+        <x>160</x>
         <y>20</y>
         <width>41</width>
         <height>17</height>
@@ -553,8 +647,8 @@
      <widget class="QRadioButton" name="radioCyn">
       <property name="geometry">
        <rect>
-        <x>150</x>
-        <y>20</y>
+        <x>200</x>
+        <y>40</y>
         <width>41</width>
         <height>17</height>
        </rect>
@@ -569,7 +663,7 @@
      <widget class="QRadioButton" name="radioBlu">
       <property name="geometry">
        <rect>
-        <x>110</x>
+        <x>120</x>
         <y>20</y>
         <width>41</width>
         <height>17</height>
@@ -585,8 +679,8 @@
      <widget class="QRadioButton" name="radioMag">
       <property name="geometry">
        <rect>
-        <x>230</x>
-        <y>20</y>
+        <x>120</x>
+        <y>40</y>
         <width>41</width>
         <height>17</height>
        </rect>
@@ -601,8 +695,8 @@
      <widget class="QRadioButton" name="radioWht">
       <property name="geometry">
        <rect>
-        <x>280</x>
-        <y>20</y>
+        <x>200</x>
+        <y>60</y>
         <width>41</width>
         <height>17</height>
        </rect>
@@ -617,9 +711,9 @@
      <widget class="QRadioButton" name="radioYel">
       <property name="geometry">
        <rect>
-        <x>190</x>
-        <y>20</y>
-        <width>51</width>
+        <x>160</x>
+        <y>40</y>
+        <width>41</width>
         <height>17</height>
        </rect>
       </property>
@@ -659,9 +753,9 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>320</y>
+      <y>330</y>
       <width>611</width>
-      <height>371</height>
+      <height>361</height>
      </rect>
     </property>
     <property name="title">
@@ -673,7 +767,7 @@
        <x>10</x>
        <y>50</y>
        <width>591</width>
-       <height>311</height>
+       <height>301</height>
       </rect>
      </property>
      <layout class="QVBoxLayout" name="layoutGraph"/>
@@ -756,9 +850,16 @@
     <addaction name="actionGhostAxle"/>
     <addaction name="actionVehicleSplit"/>
     <addaction name="actionVehicleJoined"/>
+    <addaction name="actionRaisedIn2ndGroup"/>
+    <addaction name="actionRaisedIn3rdGroup"/>
+    <addaction name="actionRaisedIn4thGroup"/>
+    <addaction name="actionRaisedIn5thGroup"/>
     <addaction name="separator"/>
     <addaction name="actionCannotLabel"/>
     <addaction name="actionInconsistentData"/>
+    <addaction name="separator"/>
+    <addaction name="actionDevelOptions"/>
+    <addaction name="separator"/>
    </widget>
    <addaction name="menuPhoto"/>
    <addaction name="mnuHelp"/>
@@ -904,6 +1005,46 @@
    </property>
    <property name="shortcut">
     <string>Alt+J</string>
+   </property>
+  </action>
+  <action name="actionRaisedIn2ndGroup">
+   <property name="text">
+    <string>Raised in 2nd Group</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+2</string>
+   </property>
+  </action>
+  <action name="actionRaisedIn3rdGroup">
+   <property name="text">
+    <string>Raised in 3rd Group</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+3</string>
+   </property>
+  </action>
+  <action name="actionRaisedIn4thGroup">
+   <property name="text">
+    <string>Raised in 4th Group</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+4</string>
+   </property>
+  </action>
+  <action name="actionRaisedIn5thGroup">
+   <property name="text">
+    <string>Raised in 5th Group</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+5</string>
+   </property>
+  </action>
+  <action name="actionDevelOptions">
+   <property name="text">
+    <string>Devel Options</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+D</string>
    </property>
   </action>
  </widget>

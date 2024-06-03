@@ -4,6 +4,27 @@ Jan Kalin <jan.kalin@zag.si>
 
 **Zgodovina izdaj aplikacije in dokumentacije**
 
+v1.13, 28. maj 2024
+
+- Dodana oznaka [*YOLO Error*](#Splošne-oznake)
+- Oznaka *Več vozil* je prestavljena med [WIM oznake](#WIM-oznake)
+
+v1.12, 22. maj 2024
+
+- Dodan [*Auto Brightness %*](#popravljanje-slik) pri nalaganju slik
+- Dodana je možnost [*Expected Vehicle Type*](#Select-vehicle-groups-for-labelling) v okvirčku *Select vehicle groups for labelling*
+- Oznaka [*Cannot Label*](#Splošne-oznake) se sedaj imenuje *Cannot label / not found*
+- Dodane bližnjice za [dvignjene osi](#Osi,-grupe-in-dvignjene-osi)
+- Spremenjena je postavitev kontrol za označevanje tako, da so najpogosteje uporabljene čim bližje sliki
+
+v1.11, 21. maj 2024
+
+- Poleg timestamp-a vozila se izpiše tudi timestamp slike, oboje v bolj prijaznem formatu
+
+v1.10, 20. maj 2024
+
+- Dodan [*Auto Contrast %*](#Popravljanje-slik) pri nalaganju slik
+
 v1.9, 16. maj 2024
 
 - [Dvoklik na sliki](#popravljanje-slik) poveča kontrast ali svetlost za 125%
@@ -48,7 +69,7 @@ v1.2, 29. marec 2024
 
 v1.1, 27. marec 2024
 
-- Velike množice vozil (npr., tovornjaki s skupinam 113) so razdeljene na podmnožice moči 1000.
+- Velike množice vozil (npr., tovornjaki s skupinam 113) so razdeljene na podmnožice moči 1000
 - Bližnjice so brez `<Alt>`
 - Nov način opisovanja dvignjenih osi
 - Dodana oznaka **Nekonsistentni Podatki**
@@ -191,7 +212,9 @@ Velike množice vozil (npr., tovornjaki s skupinami 113) so razdeljene na podmno
 
 Potrditveno polje *Only unseen* omogoča nalaganje samo tistih slik, ki jih še noben ni videl. Trenutno je ta možnost onemogočena, ker zmeša oštevilčenje slik. Ponovno bo omogočena skupaj z možnostjo *Only with comments*.
 
-Ko je slika naložena, jo je možno s klikom na *Show photo in viewer* naložiti v eksterni pregledovalnik slik.
+Z izbiro ene izmed možnosti s spiska *Expected Vehicle Type* lahko nastavimo pričakovan tip vozila. Če je tip vozila drugačen, se prikaže na rdečem ozadju, kot je to prikazano na naslednji sliki. Če so tipi v določeni skupini vozil pretežno mešani, morda to ni tako uporabno, pri skupinah osi, npr., 113, kjer avtobusa ni, pa lahko precej zmanjša možnost da spregledamo napačno označeno vozilo.
+
+![expected_type](expected_type.png)
 
 #### *ADMPs*
 
@@ -213,7 +236,9 @@ Ko se izbere skupine osi, se v razdelku *Photo* takoj pojavi prva fotografija zn
 
 ![photo](photo.png)
 
-V imenu razdelka je napisana zaporedna številka vozila, število vseh vozil, timestamp vozila, ID fotografije ter *ORIGINAL*, če oznake slike niso bile spremenjene ali `CHANGED`, če so bile. Na vrhu razdelka je izpisano uporabniško ime zadnjega, ki je fotografijo videl ter, če so bile oznake spremenjene, ime uporabnika, ki je zadnji spreminjal oznake.
+V imenu razdelka je napisana zaporedna številka vozila, število vseh vozil, timestamp vozila, ID fotografije ter *ORIGINAL*, če oznake slike niso bile spremenjene ali `CHANGED`, če so bile. 
+
+Ko je slika naložena, jo je možno s klikom na *Show photo in viewer* naložiti v eksterni pregledovalnik slik.
 
 ###### Izbira fotografije
 
@@ -243,7 +268,11 @@ Z klikom miške na sliko je možno izvesti preproste popravke slike. V naslednji
 | `<Shift>+<Desna>` | Zmanjšanje svetlosti za 25% |
 |  `<Srednja>`      | Vrnitev originalne slike |
 
+Od verzije 1.10 naprej je možno določiti, da se pri nalaganju slike avtomatsko poveča kontrast, če je vrednosti v vnosnem polju *Auto Contrast %* različna od 0, od verzije 1.12 naprej pa tudi svetlost, za vrednost v vnosnem polju *Auto Brightness %*.
+
 #### Nastavljanje oznak
+
+Na vrhu razdelka je izpisano uporabniško ime zadnjega, ki je fotografijo videl ter, če so bile oznake spremenjene, ime uporabnika, ki je zadnji spreminjal oznake.
 
 V zgornjem delu razdelka *Label* so polja s katerimi lahko spreminjamo oznake. Skoraj vsa polja imajo asociirano bližnjico, ki je bila izbrana tako, da minimizira porabljen čas in premikanje prstov na tastaturi.
 
@@ -267,6 +296,10 @@ V polju *Raised* se navede grupo v kateri je dvignjena os. Tipičen primer je, k
 
 Pri spreminjanju polja *Raised* aplikacija samodejno popravi vrednost v polju *Groups*, v tem primeru bi se skupine 112 spremenile v 113.  Po tem je seveda možno še ročno popraviti polje *Groups*.
 
+Za hitrejše nastavljanje dvignjenih osi so na voljo bližnjice `<Alt>+<N>`, kjer je `<N>` tipka od 2 do 5.
+
+
+
 N.B.: Pri avtomatskem spreminjanju polja *Groups*, se za izhodišče vedno vzame originalno vrednost. Torej, če vozilu 122 ročno popravimo grupe na 123, potem pa še v polju *Raised* določimo dvignjeno osi v drugi grupi z vnosom vrednosti `2`, bo aplikacija zavrgla ročno spremembo skupin in končni rezultat bodo skupine 132.
 
 ##### Oznake fotografije
@@ -280,7 +313,10 @@ N.B.: Pri avtomatskem spreminjanju polja *Groups*, se za izhodišče vedno vzame
 - **Presluh:** Včasih pride do presluha z enega pasu na drugega in vozilo se pojavi na obeh pasovih. Bližnjica je `R` za *C**r**osstalk*.
 - **Navidezna os:** To je mišljeno predvsem za osi pred ali po legitimnem vozilu, ne odvečno osi znotraj vozila. Bližnjica = `G` za ***G**host axle*.
 - **Vozilo razpolovljeno:** Če je medosna razdalja v kakšnem vozilu daljša od najdaljše v klasifikacijski tabeli, SiWIM razpolovi vozilo med tema osema v dve vozili. Bližnjica je `S` za ***S**plit*.
-- Vozilo združeno: Če si dve vozili sledita preblizu eno drugemu, jih SiWIM združi v eno vozilo. Bližnjica je `J` za ***J**oined*.
+- **Vozilo združeno:** Če si dve vozili sledita preblizu eno drugemu, jih SiWIM združi v eno vozilo. Bližnjica je `J` za ***J**oined*.
+- **Več vozil:** Da bi se začetno raziskovanje FAMNITa omejilo samo na dogodke v katerih je prisotno samo eno vozilo, se označi vozilo, ki ni samo v dogodku. Načeloma je ta napaka že strojno nastavljena iz informacij iz NSWD, lahko pa se zgodi, da kakšen primer uide.
+
+  Tedaj se lahko uporabi bližnjico `M` za ***M**ultiple vehicles*.
 
 ###### Rekonstruirane in popravljene osi
 
@@ -296,11 +332,9 @@ Funkcija *fix* pa je bila implementirana v zunanji Python skripti in je delovala
 
   Tedaj se lahko preveri stanje z ogledom originalnih podatkov (*Show CF event in viewer*) in označi napako. Bližnjica je `I`, za ***I**nconsistent data*.
 
-- **Več vozil:** Da bi se začetno raziskovanje FAMNITa omejilo samo na dogodke v katerih je prisotno samo eno vozilo, se označi vozilo, ki ni samo v dogodku. Načeloma je ta napaka že strojno nastavljena iz informacij iz NSWD, lahko pa se zgodi, da kakšen primer uide.
+- **YOLO napaka:** Včasih YOLO ne najde vozila ali pa označi samo napačno vozilo. Bližnjica je `Y` za ***Y**OLO error*.
 
-  Tedaj se lahko uporabi bližnjico `M` za ***M**ultiple vehicles*.
-
-- Zadnjo možnost se uporabi, ko ni dovolj informacij, da bi sploh pregledal sliko in jo označil (ali pa ne). Tedaj se uporabi **Ne morem označiti**. Bližnjica je `N` za *Ca**n**not label*.
+- Zadnjo možnost se uporabi, ko ni dovolj informacij, da bi sploh pregledal sliko in jo označil (ali pa ne). Lahko pa YOLO sploh ni našel pravega vozila. Tedaj se uporabi **Ne morem označiti**. Bližnjica je `N` za *Ca**n**not label / not found*.
 
 ##### Komentar
 
