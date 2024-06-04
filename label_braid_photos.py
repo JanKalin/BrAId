@@ -64,6 +64,7 @@ parser.add_argument("--timeout", help="File write timeout in seconds", type=int,
 parser.add_argument("--batchsize", help="Batch size for better motivation :)", type=int, default=1000)
 parser.add_argument("--noseen_by", help="Do not change `seen_by` metadata. Used for checking", action='store_true')
 parser.add_argument("--threaded", help="Use thread to load photos in the background. Currenlty inoperative", action='store_true')
+parser.add_argument("--find", help="Find photo ID and display it", type=int)
 
 try:
     __IPYTHON__
@@ -124,7 +125,17 @@ for axle_groups in rvs_list:
         rvs_batches[axle_groups] = rvs_list[axle_groups]
     else:
         for batch in range(batches):
-            rvs_batches[f"{axle_groups} [{batch + 1:02}/{batches:02}]"] = rvs_list[axle_groups][batch*args.batchsize:(batch+1)*args.batchsize]   
+            rvs_batches[f"{axle_groups} [{batch + 1:02}/{batches:02}]"] = rvs_list[axle_groups][batch*args.batchsize:(batch+1)*args.batchsize]
+            
+# Perhaps just find a vehicle
+if args.find:
+    found = None
+    for batch, photos in rvs_batches.items():
+        for idx, photo in enumerate(photos):
+            if photo['photo_id'] == args.find:
+                print(batch, idx + 1, photo)
+                raise SystemExit
+    raise RuntimeError(f"Photo ID {args.find} not found")
 
 #%% Image and validator helper functions
 
