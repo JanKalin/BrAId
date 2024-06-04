@@ -156,4 +156,4 @@ with open(os.path.join(SCRIPT_DIR, 'data', "recognized_vehicles.json"), 'w') as 
     json.dump(rvs_lane1, f, indent=2)
 
 with open(os.path.join(SCRIPT_DIR, 'data', "vehicle2event.json"), 'w') as f:
-    json.dump(v2e, f, indent=2)
+    json.dump(v2e_lane1, f, indent=2)

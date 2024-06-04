@@ -4,6 +4,10 @@ Jan Kalin <jan.kalin@zag.si>
 
 **Zgodovina izdaj aplikacije in dokumentacije**
 
+v1.13.1, 3. junij 2024
+
+- Dodan je razdelek [Opis podatkov v datoteki `metadata.hdf`](#Opis-podatkov-v-datoteki-metadata.hdf)
+
 v1.13, 28. maj 2024
 
 - Dodana oznaka [*YOLO Error*](#Splošne-oznake)
@@ -149,6 +153,19 @@ Za polno funkcionalnost aplikacije je treba priklopiti nekaj omrežnih diskov po
 V kolikor ne morete priklopiti diskov se oglasite pri avtorju.
 
 Opozorilo: po reboot/sleep/hybernation,... je treba klikniti na vsakega izmed teh diskov v Explorerju. Windows imajo namreč to grdo navado, da disk dejansko priklopijo šele potem, ko v Explorerju klikneš nanj. Če pa poskuša kakšna aplikacija priti do diska pred tem, pride do napake.
+
+### Uporaba več uporabnikov hkrati
+
+Aplikacija skrbi za to, da jo lahko uporablja več uporabnikov hkrati. V zelo redkih primerih se lahko zgodi, da se zatakne pri dostopu do diska. Lahko pa seveda pride tudi do težav s povezavo v omrežje.
+
+V splošnem to ni problem za podatke, ker gre večinoma za branje. Izjema je datoteka `metadata.hdf5` zaradi:
+
+- Beleženja zadnjega dostopa takoj, ko se slika odpre
+- Shranjevanja sprememb oznak.
+
+Če aplikacija tega ne more narediti, opozori z dvema piskoma in z izpisom na konzoli. Priporočeno je, da se takrat aplikacijo zapusti in razišče izvor težav, saj se spremembe ne bodo pisale v datoteko.
+
+
 
 ## Uporaba aplikacije
 
@@ -348,14 +365,119 @@ Tukaj so zbrane smernice za označevanje, ki smo jih dorekli na sestanku 14. maj
 - Pri oznaki *Cannot label* se ne piše razloga — le malo verjetno je, da bo kdo to kdaj gledal.
 - Komentar se uporabi le, če je kar res izjemnega. Ko/če se bomo odločili pregledovati komentarje, je koristno, da jih ni preveč.
 
-## Uporaba več uporabnikov hkrati
+## Opis podatkov v datoteki `metadata.hdf`
 
-Aplikacija skrbi za to, da jo lahko uporablja več uporabnikov hkrati. V zelo redkih primerih se lahko zgodi, da se zatakne pri dostopu do diska. Lahko pa seveda pride tudi do težav s povezavo v omrežje.
+V tem razdelku je zbrana dokumentacija za datoteko in pot do te datoteke.
 
-V splošnem to ni problem za podatke, ker gre večinoma za branje. Izjema je datoteka `metadata.hdf5` zaradi:
+Osnovni SiWIM podatki so zbrani v datotekah `.nswd`, ki vsebujejo podatke o vozilih, ter pripadajoče slike v datotekah `.vehiclephotos`, iz katerih je FAMNIT s pomočjo `siwim-pi` knjižnice ekstrahiral slike, jih poslal skozi YOLO algoritem za prepoznavo vozil in ZAGu poslal dva kompleta podatkov:
 
-- Beleženja zadnjega dostopa takoj, ko se slika odpre
-- Shranjevanja sprememb oznak.
+- `recognized_vehicles.json` v kateri so za vsako sliko zbrani podatki, med drugim ID slike timestamp-a fotografije in vozila, en ali več detektiranih tipov vozila,…
+- Slike na katerih so z barvnimi kvadratki označena detektirana vozila
 
-Če aplikacija tega ne more narediti, opozori z dvema piskoma in z izpisom na konzoli. Priporočeno je, da se takrat aplikacijo zapusti in razišče izvor težav, saj se spremembe ne bodo pisale v datoteko.
+### Struktura datoteke in branje
 
+Datoteka je strukturirana v dva nivoja. Na prvem nivoju so grupe (ekvivalentno direktorijem), katerih imena ustrezajo skupinam osi vozila, npr., 113, 11,… Znotraj tega so posamezni dataset-i, katerih imena ustrezajo ID slik. Dataset vsebuje niz z JSON predstavitvijo metapodatkov za vsako sliko. Branje je možno z naslednjo funkcijo:
+
+```python
+def load_metadata(rv, filename, axle_groups=None, photo_id=None, exists=False, seen_by=False):
+    """Loads metadata for recognised vehicle, `rv`
+    If `axle_groups` and/or `photo_id` is None, the value is read from `rv`
+    If both are not None, you can pass None for `rv`
+    If `exists` is True, returns True if the entry exists, False otherwise
+    If `seen_by` is True, returns True if it has been seen by anyone, False otherwise
+    If there's no data, the default metadata `{'seen_by': None, 'changed_by': None}` is returned
+    """
+    if axle_groups is None:
+        axle_groups = rv['axle_groups']
+    if photo_id is None:
+        photo_id = rv['photo_id']
+    try:
+        with h5py.File(filename, 'r') as f:
+            result = json.loads(f[f"{axle_groups}/{photo_id}"].asstr()[()])
+            if exists:
+                return True
+            elif seen_by:
+                return result['seen_by'] is not None
+            else:
+                return result
+                
+    except:
+        return False if exists or seen_by else {'seen_by': None, 'changed_by': None}
+    
+
+```
+
+pisanje pa s funkcijo
+
+```python
+def save_metadata(rv, metadata, filename, axle_groups=None, photo_id=None, timeout=None):
+    """Saves metadata for recognised vehicle
+    If `axle_groups` and/or `photo_id` is None, the value is read from `rv`
+    If both are not None, you can pass None for `rv`
+    Waits for up to `timeout` seconds before raising an exception, if the file cannot be written to
+    """
+    if axle_groups is None:
+        axle_groups = rv['axle_groups']
+    if photo_id is None:
+        photo_id = rv['photo_id']
+        
+    f = None
+    wait_until = datetime.datetime.now()
+    if timeout:
+         wait_until += datetime.timedelta(seconds=timeout)
+    try:
+        while True:
+            try:
+                f = h5py.File(filename, 'a')
+                break
+            except:
+                if datetime.datetime.now() < wait_until:
+                    time.sleep(0.1)
+                    continue
+                else:
+                    raise RuntimeError(filename)
+        try:
+            grp = f.require_group(f"{axle_groups}")
+        except TypeError:
+            grp = f[f"{axle_groups}"]
+        try:
+            grp[str(photo_id)] = json.dumps(metadata)
+        except:
+            data = grp[str(photo_id)]
+            data[...] = json.dumps(metadata)
+    finally:
+        if f is not None:
+            f.close()
+```
+
+
+
+### Filtriranje podatkov in generiranje pomožne datoteke
+
+V originalnih podatkih je bilo nekaj podatkov odveč. Izkazalo se je, da se je nesmiselno ukvarjati z vozili na pasu 2, saj so zelo pogosto na sliki skriti za vozilom na pasu 1, še bolj pa je relevantno dejstvo, da so na pasu 2 redkokdaj vozila, ki so za obravnavo zanimiva, saj tovornjaki v ogromni večini vozijo po pasu 1.
+
+Poleg tega bilo je za hitrejšo obdelavo potrebno narediti preslikavo timestamp vozila $\rightarrow$ timestamp eventa.
+
+Prva skripta za pred-procesiranje je prebrala vse `.nswd` datoteke ter originalno datoteko `recognized_vehicles.json` in generirala novo datoteko `recognized_vehicles.json`, v kateri so samo vozila na pasu 1, ter `vehicle2event.json` z zahtevano preslikavo.
+
+### Metapodatki
+
+Poln spisek metapodatkov z razlagami:
+
+- `seen_by` se nastavi takrat, ko se slika naloži v aplikacijo. S tem je potrjeno, da je nekdo videl sliko. Vrednost je tuple, prvi element je timestamp, drugi uporabniško ime.
+- `changed_by` se nastavi takrat, ko se s pomočjo aplikacije spremeni metapodatek. Ta podatek ostane med metapodatki tudi v situaciji, ko se po pomoti nastavi neka oznaka (npr., *Cannot label*), potem pa se oznaka umakne. Tudi tu je vrednost tuple.
+- `vehicle_type` vsebuje tip vozila, `bus`, `truck`, ali `other`.
+- `groups` vsebuje skupine osi vozila. Če podatka ni, je originalna vrednost OK.
+- `raised` pove v kateri skupini osi je morebitna dvignjena os.
+- `segment` pove kateri izmed barvnih okvirčkov na sliki označuje pravo vozilo. Možne vrednosti so `r`, `g`, `b`, `c`, `y`, `m`, in `w`. Če podatka ni, je YOLO pravilno detektiral vozilo, ki je označeno z rdečim okvirčkom.
+- `errors`  je `dict`, katerega ključi opisujejo napake, vrednosti pa so lahko `0`, če napaka ni prisotna ali `2`, če napaka je prisotna. Vrednost `0` je vpisana samo v primeru, da je uporabnik napako najprej označil, potem pa se je premislil, drugače pa vrednost ni vpisana. Možne napake so: `wrong_lane`, `off_lane`, `photo_truncated`, `vehicle_split`, `vehicle_joined`, `crosstalk`, `ghost_axle`, `multiple_vehicles`, `reconstructed`, `fixed`, `inconsistent_data`, `yolo_error` in `cannot_label`. 
+- `comment` je niz, v katerega so lahko napisani komentarji k posameznemu vozilu.
+
+### Pred-nastavljeni metapodatki
+
+Preden se je začelo izvajati ročno pregledovanje slik, so se v metapodatke strojno napisali določene vrednosti. V teh primerih se ni nastavljalo polje `changed_by`, ki je rezervirano za ročne spremembe.
+
+- Za vsa vozila, katerih osne skupine *niso* v spisku [11, 12, 111, 121], YOLO pa jih je prepoznal kot avtobuse, se je nastavilo `vehicle_type` na `truck`.
+- Vozila, ki so bila v event-u skupaj še s kakšnim drugim vozilom, se je nastavilo `error:multiple_vehicles`.
+- Vozila, ki jim je SiWIM rekonstruiral osi (to se ne vidi na ADMP grafih), so dobila oznako `error:reconstructed`. Te oznake se v aplikaciji ne da spremeniti.
+- Vozila, ki jih je algoritem v `fix.py` pri post-procesiranju popravil, ali pa ki so bila ročno popravljena z aplikacijo *SiWIM-D*, so dobila oznako `error:fixed`. Tudi te oznake se v aplikaciji ne da spreminjati.
