@@ -4,6 +4,10 @@ Jan Kalin <jan.kalin@zag.si>
 
 **Zgodovina izdaj aplikacije in dokumentacije**
 
+v1.13.2, 4. junij 2024
+
+- Dodan je razdelek [Izbira časovnega intervala](#Izbira-časovnega-intervala)
+
 v1.13.1, 3. junij 2024
 
 - Dodan je razdelek [Opis podatkov v datoteki `metadata.hdf`](#Opis-podatkov-v-datoteki-metadata.hdf)
@@ -452,11 +456,15 @@ def save_metadata(rv, metadata, filename, axle_groups=None, photo_id=None, timeo
 
 
 
+### Izbira časovnega intervala
+
+Čeprav je referenčnih podatkov za skoraj dve leti, smo izmed teh izbrali samo obdobje med 5. marcem 2014 in 3. septembrom 2014. V ostalem času slik ni, ali pa so narejene z IR kamero, ki je nerodno postavljena tako, da slika tudi drugo stran, ali pa je nasploh slabo nastavljena.
+
 ### Filtriranje podatkov in generiranje pomožne datoteke
 
 V originalnih podatkih je bilo nekaj podatkov odveč. Izkazalo se je, da se je nesmiselno ukvarjati z vozili na pasu 2, saj so zelo pogosto na sliki skriti za vozilom na pasu 1, še bolj pa je relevantno dejstvo, da so na pasu 2 redkokdaj vozila, ki so za obravnavo zanimiva, saj tovornjaki v ogromni večini vozijo po pasu 1.
 
-Poleg tega bilo je za hitrejšo obdelavo potrebno narediti preslikavo timestamp vozila $\rightarrow$ timestamp eventa.
+Za hitrejšo obdelavo je bilo potrebno narediti preslikavo timestamp vozila $\rightarrow$ timestamp eventa.
 
 Prva skripta za pred-procesiranje je prebrala vse `.nswd` datoteke ter originalno datoteko `recognized_vehicles.json` in generirala novo datoteko `recognized_vehicles.json`, v kateri so samo vozila na pasu 1, ter `vehicle2event.json` z zahtevano preslikavo.
 
@@ -475,7 +483,7 @@ Poln spisek metapodatkov z razlagami:
 
 ### Pred-nastavljeni metapodatki
 
-Preden se je začelo izvajati ročno pregledovanje slik, so se v metapodatke strojno napisali določene vrednosti. V teh primerih se ni nastavljalo polje `changed_by`, ki je rezervirano za ročne spremembe.
+Preden se je začelo izvajati ročno pregledovanje slik, so se v metapodatke strojno napisali določene vrednosti. V teh primerih se ni nastavljalo polje `changed_by`, ki je rezervirano za ročne spremembe, prav tako se ni nastavljalo polje `seen_by`.
 
 - Za vsa vozila, katerih osne skupine *niso* v spisku [11, 12, 111, 121], YOLO pa jih je prepoznal kot avtobuse, se je nastavilo `vehicle_type` na `truck`.
 - Vozila, ki so bila v event-u skupaj še s kakšnim drugim vozilom, se je nastavilo `error:multiple_vehicles`.
