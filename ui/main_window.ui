@@ -355,27 +355,27 @@
      <widget class="QLabel" name="lblReconstructed">
       <property name="geometry">
        <rect>
-        <x>77</x>
+        <x>70</x>
         <y>60</y>
-        <width>41</width>
+        <width>21</width>
         <height>16</height>
        </rect>
       </property>
       <property name="text">
-       <string>Recons.</string>
+       <string>Rec.</string>
       </property>
      </widget>
      <widget class="QLabel" name="lblFixed">
       <property name="geometry">
        <rect>
-        <x>130</x>
+        <x>113</x>
         <y>60</y>
-        <width>31</width>
+        <width>21</width>
         <height>16</height>
        </rect>
       </property>
       <property name="text">
-       <string>Fixed</string>
+       <string>Fix.</string>
       </property>
      </widget>
      <widget class="QCheckBox" name="chkMultipleVehicles">
@@ -383,12 +383,25 @@
        <rect>
         <x>10</x>
         <y>60</y>
-        <width>61</width>
+        <width>41</width>
         <height>17</height>
        </rect>
       </property>
       <property name="text">
-       <string>Multiple</string>
+       <string>Mult.</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="lblQA">
+      <property name="geometry">
+       <rect>
+        <x>150</x>
+        <y>60</y>
+        <width>16</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>QA</string>
       </property>
      </widget>
     </widget>

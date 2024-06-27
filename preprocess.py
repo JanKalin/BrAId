@@ -48,6 +48,9 @@ reconstructed = set([x.timestamp.timestamp() for x in vehicles if x.vehiclerecon
 manually_changed = set([x.timestamp.timestamp() for x in vehicles if x.manuallychangedflags()])
 fixed = set([x.timestamp.timestamp() for x in vehicles if x.qafixedflag()])
 lane1 = set([x.timestamp.timestamp() for x in vehicles if not x.lane])
+colors = {'green': set([x.timestamp.timestamp() for x in vehicles if x.qaflag(color=True) == 'green']),
+          'orange': set([x.timestamp.timestamp() for x in vehicles if x.qaflag(color=True) == 'orange']),
+          'red': set([x.timestamp.timestamp() for x in vehicles if x.qaflag(color=True) == 'red'])}
 v2e_all = {x.timestamp.timestamp(): x.event_timestamp.timestamp() for x in vehicles}
 v2e_lane1 = {x.timestamp.timestamp(): x.event_timestamp.timestamp() for x in vehicles if not x.lane}
 multiple_vehicles = {}
@@ -62,13 +65,14 @@ sys.stdout.flush()
 #%% Perhaps just set reconstructed and fixed flags
 
 set_reconstructed_and_fixed_and_multiple_vehicle = False
-set_manually_changed = True
-countonly = False
+set_manually_changed = False
+set_qa = True
+countonly = True
 
 noprogress = False
 
 tochange = []
-if set_reconstructed_and_fixed_and_multiple_vehicle or set_manually_changed:
+if set_reconstructed_and_fixed_and_multiple_vehicle or set_manually_changed or set_qa:
     print("Setting reconstructed, fixed, manually fixed and multiple_vehicle flags")
     if not noprogress: progress = Progress("Processing {} photos... {{}}% ".format(len(rvs)), len(rvs))
     for rv in rvs:
@@ -108,12 +112,26 @@ if set_reconstructed_and_fixed_and_multiple_vehicle or set_manually_changed:
                 except:
                     metadata['errors'] = {}
             metadata['errors']['fixed'] = 2
+            
+        for color, lst in colors.items():
+            if (rv['vehicle_timestamp'] in lane1
+                and rv['vehicle_timestamp'] in lst
+                and set_qa):
+                if metadata is None:
+                    metadata = load_metadata(rv, metadatafile)
+                    try:
+                        metadata['errors']
+                    except:
+                        metadata['errors'] = {}
+                metadata['errors']['qa'] = color
+                if color == 'red':
+                    print(rv)
 
         if metadata is not None:
             if countonly:
                 tochange.append(rv)
             else:
-                save_metadata(rv, metadata, metadatafile)
+                save_metadata(rv, metadata, metadatafile, timeout=5)
             
     if countonly:
         print(f"Will set metadata for {len(tochange)} vehicles")

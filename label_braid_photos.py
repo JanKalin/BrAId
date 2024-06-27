@@ -65,12 +65,13 @@ parser.add_argument("--batchsize", help="Batch size for better motivation :)", t
 parser.add_argument("--noseen_by", help="Do not change `seen_by` metadata. Used for checking", action='store_true')
 parser.add_argument("--threaded", help="Use thread to load photos in the background. Currenlty inoperative", action='store_true')
 parser.add_argument("--find", help="Find photo ID and display it", type=int)
+parser.add_argument("--dumpbatches", help="Create a batches.json file containing information about batches", action='store_true')
 
 try:
     __IPYTHON__
     if True and getpass.getuser() == 'jank':
         # args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo e:\yolo_photos --noseen".split())
-        args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo e:\yolo_photos --noseen".split())
+        args = parser.parse_args(r"--dump --metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo e:\yolo_photos --noseen".split())
     else:
         raise Exception
 except:
@@ -136,6 +137,12 @@ if args.find:
                 print(batch, idx + 1, photo)
                 raise SystemExit
     raise RuntimeError(f"Photo ID {args.find} not found")
+    
+# Perhaps just dump batches
+if args.dumpbatches:
+    with open(os.path.join(args.metadata_dir, "batches.json"), 'w') as f:
+        json.dump({key: [x['photo_id'] for x in value] for (key, value) in rvs_batches.items()}, f, indent=2)
+    raise SystemExit
 
 #%% Image and validator helper functions
 
