@@ -475,7 +475,7 @@ Poln spisek metapodatkov z razlagami:
 - `seen_by` se nastavi takrat, ko se slika naloži v aplikacijo. S tem je potrjeno, da je nekdo videl sliko. Vrednost je tuple, prvi element je timestamp, drugi uporabniško ime.
 - `changed_by` se nastavi takrat, ko se s pomočjo aplikacije spremeni metapodatek. Ta podatek ostane med metapodatki tudi v situaciji, ko se po pomoti nastavi neka oznaka (npr., *Cannot label*), potem pa se oznaka umakne. Tudi tu je vrednost tuple.
 - `vehicle_type` vsebuje tip vozila, `bus`, `truck`, ali `other`.
-- `groups` vsebuje skupine osi vozila. Če podatka ni, je originalna vrednost OK.
+- `groups` vsebuje skupine osi vozila. Če podatka ni, ali pa se vrednost ujema z originalno vrednostjo, je originalna vrednost OK.
 - `raised` pove v kateri skupini osi je morebitna dvignjena os.
 - `segment` pove kateri izmed barvnih okvirčkov na sliki označuje pravo vozilo. Možne vrednosti so `r`, `g`, `b`, `c`, `y`, `m`, in `w`. Če podatka ni, je YOLO pravilno detektiral vozilo, ki je označeno z rdečim okvirčkom.
 - `errors`  je `dict`, katerega ključi opisujejo napake, vrednosti pa so lahko `0`, če napaka ni prisotna ali `2`, če napaka je prisotna. Vrednost `0` je vpisana samo v primeru, da je uporabnik napako najprej označil, potem pa se je premislil, drugače pa vrednost ni vpisana. Možne napake so: `wrong_lane`, `off_lane`, `photo_truncated`, `vehicle_split`, `vehicle_joined`, `crosstalk`, `ghost_axle`, `multiple_vehicles`, `reconstructed`, `fixed`, `inconsistent_data`, `yolo_error` in `cannot_label`. 
