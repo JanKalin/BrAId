@@ -93,7 +93,9 @@ metadata_lock = os.path.join(args.metadata_dir, "metadata.lock")
 #%% Load data first and make datetime from timestamps
 print(f"label_braid_photos v{__version__} starting up...")
 
-print("Loading recognized_vehicles.json, ", end='')
+print(f"Using {metadata_filename}")
+
+print(f"Loading {os.path.join(args.data_dir, 'recognized_vehicles.json')}, ", end='')
 sys.stdout.flush()
 with open(os.path.join(args.data_dir, "recognized_vehicles.json")) as f:
     rvs_loaded = json.load(f)
@@ -103,7 +105,7 @@ for rv in rvs_loaded:
     rv['vehicle_timestamp'] = datetime.datetime.fromtimestamp(rv['vehicle_timestamp'])
     rv['photo_timestamp'] = datetime.datetime.fromtimestamp(rv['photo_timestamp'])
 
-print("Loading vehicle2event.json, ", end='')
+print(f"Loading {os.path.join(args.data_dir, 'vehicle2event.json')}, ", end='')
 sys.stdout.flush()
 with open(os.path.join(args.data_dir, "vehicle2event.json")) as f:
     v2e = json.load(f)
