@@ -95,13 +95,13 @@ def save_metadata(rv, metadata, filename, axle_groups=None, photo_id=None, timeo
             grp = f[f"{axle_groups}"]
         try:
             grp[str(photo_id)] = json.dumps(metadata)
-        except:
-            data = grp[str(photo_id)]
-            data[...] = json.dumps(metadata)
+        except OSError:
+            del f[f"{axle_groups}/{photo_id}"]
+            grp[str(photo_id)] = json.dumps(metadata)
+        #print(json.dumps(metadata))
     finally:
         if f is not None:
             f.close()
 
 def beep():
     winsound.Beep(1670, 100)
-

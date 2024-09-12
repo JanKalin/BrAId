@@ -63,15 +63,17 @@ parser.add_argument("--count", help="Count vehicles", action='store_true')
 parser.add_argument("--timeout", help="File write timeout in seconds", type=int, default=10)
 parser.add_argument("--batchsize", help="Batch size for better motivation :)", type=int, default=1000)
 parser.add_argument("--noseen_by", help="Do not change `seen_by` metadata. Used for checking", action='store_true')
-parser.add_argument("--threaded", help="Use thread to load photos in the background. Currenlty inoperative", action='store_true')
+parser.add_argument("--threaded", help="Use thread to load photos in the background. Currently inoperative", action='store_true')
 parser.add_argument("--find", help="Find photo ID and display it", type=int)
+parser.add_argument("--findmany", help="Find many IDs. Arguments are input file containing IDs and output file containing batches and ids of vehicles", nargs=2)
 parser.add_argument("--dumpbatches", help="Create a batches.json file containing information about batches", action='store_true')
 
 try:
     __IPYTHON__
     if True and getpass.getuser() == 'jank':
         # args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo e:\yolo_photos --noseen".split())
-        args = parser.parse_args(r"--dump --metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo e:\yolo_photos --noseen".split())
+        # args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo b:\yolo_photos --noseen --findmany data/missed_ids.txt data/missed_batch_idx.txt".split())
+        args = parser.parse_args(r"".split())
     else:
         raise Exception
 except:
@@ -137,6 +139,28 @@ if args.find:
                 print(batch, idx + 1, photo)
                 raise SystemExit
     raise RuntimeError(f"Photo ID {args.find} not found")
+    
+# Perhaps find many vehicles
+if args.findmany:
+    with open(args.findmany[0], 'r') as f:
+        pngs = [os.path.splitext(x.strip().split('/')[-1])[0].split('_') for x in f.readlines()]
+        ids = {int(x[0]): (x[1], x[2]) for x in pngs}
+    with open(args.findmany[1], 'w') as f:
+        found = False
+        for batch, photos in rvs_batches.items():
+            for idx, photo in enumerate(photos):
+                if photo['photo_id'] == 376:
+                    print(photo)
+                try:
+                    missed = ids[photo['photo_id']]
+                    print(missed)
+                    f.write(f"{batch}\t{idx + 1}\t{photo['photo_id']}\t{missed[0]}\t{missed[1]}\n")
+                    found = True
+                except KeyError:
+                    pass
+    if not found:
+        raise RuntimeError(f"Photo IDs in {args.findmany} not found")
+    raise SystemExit
     
 # Perhaps just dump batches
 if args.dumpbatches:
@@ -962,7 +986,7 @@ that you stop working now and investigate the cause of problems!""")
             if self.is_locked():
                 return
             try:
-                save_metadata(self.rv, self.metadata, metadata_filename, args.timeout)
+                save_metadata(self.rv, self.metadata, metadata_filename, timeout=args.timeout)
             except RuntimeError as err:
                 self.metadata_file_error(err)
             self.show_metadata()
@@ -1080,7 +1104,7 @@ win.load_data(rvs_batches)
 
 # DEBUG
 if getpass.getuser() == 'jank':
-    win.cboxAxleGroups.setCurrentIndex(win.cboxAxleGroups.count() - 46)
+    win.cboxAxleGroups.setCurrentIndex(63)
 
 # Run main loop
 print("Good lick (ref.: 'Allo 'Allo)")

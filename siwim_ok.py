@@ -19,6 +19,7 @@ seen = 0
 cannot_label = 0
 groups_empty = 0
 groups_match = 0
+raised_axles = 0
 ok = {}
 siwim_grp = {}
 true_grp = {}
@@ -58,11 +59,19 @@ with h5py.File(srcfile, 'r') as src:
             except KeyError:
                 pass
         
+            # If we have raised axles, skip
+            try:
+                if data['raised_axles']:
+                    raised_axles += 1
+                    raised = True
+            except KeyError:
+                raised = False
+
             # Groups empty
             try:
                 data['axle_groups']
             except:
-                ok[photo_id] = True
+                ok[photo_id] = (True, False)
                 siwim_grp[grp]['ok'] += 1
                 try:
                     true_grp[grp]
@@ -73,16 +82,21 @@ with h5py.File(srcfile, 'r') as src:
                 continue
             
             # Done
-            ok[photo_id] = data['axle_groups'] == grp
-            groups_match += ok[photo_id]
-            siwim_grp[grp]['ok' if ok[photo_id] else 'no'] += 1
+            match = data['axle_groups'] == grp
+            ok[photo_id] = (match, raised)
+            groups_match += match
             try:
                 true_grp[data['axle_groups']]
             except KeyError:
                 true_grp[data['axle_groups']] = {'ok': 0, 'no': 0, 'from': {}}
-            true_grp[data['axle_groups']]['ok' if ok[photo_id] else 'no'] += 1
+            if match:
+                siwim_grp[grp]['ok'] += 1
+                true_grp[data['axle_groups']]['ok'] += 1
+            elif not raised:
+                siwim_grp[grp]['no'] += 1
+                true_grp[data['axle_groups']]['no'] += 1
 
-            if not ok[photo_id]:
+            if not ok[photo_id][0] and not ok[photo_id][1]:
                 try:
                     siwim_grp[grp]['to'][data['axle_groups']] += 1
                 except KeyError:
@@ -92,8 +106,6 @@ with h5py.File(srcfile, 'r') as src:
                 except KeyError:
                     true_grp[data['axle_groups']]['from'][grp] = 1
                     
-#%% Save
-
 with open("data/siwim_ok.json", 'w') as f:
     json.dump(ok, f, indent=2)
 
