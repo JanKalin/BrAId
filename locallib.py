@@ -63,45 +63,51 @@ def load_metadata(rv, filename, axle_groups=None, photo_id=None, exists=False, s
     except:
         return False if exists or seen_by else {'seen_by': None, 'changed_by': None}    
     
-def save_metadata(rv, metadata, filename, axle_groups=None, photo_id=None, timeout=None):
+def save_metadata(rv, metadata, filename, axle_groups=None, photo_id=None, timeout=None, backup=False):
     """Saves metadata for recognised vehicle
     If `axle_groups` and/or `photo_id` is None, the value is read from `rv`
     If both are not None, you can pass None for `rv`
     Waits for up to `timeout` seconds before raising an exception if the file cannot be written
     """
+    filenames = [filename]
+    if backup:
+        filenames.append(os.path.join(os.path.dirname(filename),
+                                      f"{os.path.splitext(os.path.basename(filename))[0]}-BACKUP"
+                                      f"{os.path.splitext(os.path.basename(filename))[1]}"))
+
     if axle_groups is None:
         axle_groups = rv['axle_groups']
     if photo_id is None:
         photo_id = rv['photo_id']
-
-    f = None
-    wait_until = datetime.datetime.now()
-    if timeout:
-         wait_until += datetime.timedelta(seconds=timeout)
-    try:
-        while True:
+        
+    for filename in filenames:
+        f = None
+        wait_until = datetime.datetime.now()
+        if timeout:
+             wait_until += datetime.timedelta(seconds=timeout)
+        try:
+            while True:
+                try:
+                    f = h5py.File(filename, 'a')
+                    break
+                except:
+                    if datetime.datetime.now() < wait_until:
+                        time.sleep(0.1)
+                        continue
+                    else:
+                        raise
             try:
-                f = h5py.File(filename, 'a')
-                break
-            except:
-                if datetime.datetime.now() < wait_until:
-                    time.sleep(0.1)
-                    continue
-                else:
-                    raise RuntimeError(filename)
-        try:
-            grp = f.require_group(f"{axle_groups}")
-        except TypeError:
-            grp = f[f"{axle_groups}"]
-        try:
-            grp[str(photo_id)] = json.dumps(metadata)
-        except OSError:
-            del f[f"{axle_groups}/{photo_id}"]
-            grp[str(photo_id)] = json.dumps(metadata)
-        #print(json.dumps(metadata))
-    finally:
-        if f is not None:
-            f.close()
+                grp = f.require_group(f"{axle_groups}")
+            except TypeError:
+                grp = f[f"{axle_groups}"]
+            try:
+                grp[str(photo_id)] = json.dumps(metadata)
+            except OSError:
+                del f[f"{axle_groups}/{photo_id}"]
+                grp[str(photo_id)] = json.dumps(metadata)
+        finally:
+            if f is not None:
+                f.close()
 
 def beep():
     winsound.Beep(1670, 100)

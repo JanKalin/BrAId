@@ -8,6 +8,7 @@ import getpass
 import io
 import json
 import os
+from pathlib import Path
 import re
 import shutil
 import sys
@@ -73,7 +74,8 @@ try:
     if True and getpass.getuser() == 'jank':
         # args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo e:\yolo_photos --noseen".split())
         # args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo b:\yolo_photos --noseen --findmany data/missed_ids.txt data/missed_batch_idx.txt".split())
-        args = parser.parse_args(r"--meta N:\disk_600_konstrukcije\JanK\braid_photo\data".split())
+        # args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data".split())
+        args = parser.parse_args(r"".split())
     else:
         raise Exception
 except:
@@ -600,11 +602,11 @@ class Window(QMainWindow, Ui_MainWindow):
     def is_locked(self):
         """Checks if the metadata file is locked and displays message if it is"""
         if os.path.isfile(metadata_lock):
-            QMessageBox.critical(
-                self,
+            beep()
+            QMessageBox.critical(self,
                 "metadata.hdf5 is locked",
                 "<p>Sorry, the metadata.hdf5 file, containing labels, is currently locked by the administrator"
-                " for maintenance or upgrade.</p><p>Unfortunately you will not be able to label photos"
+                " for maintenance, upgrade or an error.</p><p>Unfortunately you will not be able to label photos"
                 " and the last change made for this photo will not be written."
                 " Please check email for further details and expected time of unlocking.</p>"
                 "<p>Jan Kalin &lt;jan.kalin@zag.si&gt;</p>"
@@ -614,17 +616,23 @@ class Window(QMainWindow, Ui_MainWindow):
     
     def metadata_file_error(self, err):
         beep()
-        print("="*75)
-        print(f"File {err}\n"
-              f"could not be written after waiting for {args.timeout}s.\n\n"
-              
-"""This can mean that someone else has been writing to the file for some time
-or that you have lost connection to the network drive.
-
-In any case, your most recent change has not been saved, so it is recommended,
-that you stop working now and investigate the cause of problems!""")
-        print("="*75, "\n")
-        beep()
+        QMessageBox.critical(self,
+            f"metadata.hdf could not be written after waiting for {args.timeout}s",
+            f"<p>ERROR: {err}</p>"
+            "<p>This can mean that someone else has been writing to the file"
+            " at the same time or that you have lost connection to the network"
+            " drive.</p></p> In any case, your most recent change has not been"
+            " saved, so it is recommended, that you stop working now and"
+            " investigate the cause of problems!</p><p>Access to file will not"
+            " be allowed, so contact the administrator for help.</p>"
+            "<p>Jan Kalin &lt;jan.kalin@zag.si&gt;</p>")
+        try:
+            Path(metadata_lock).touch()
+        except:
+            beep()
+            QMessageBox.critical(self,
+                "Cannot create lock file"
+                "<p>Proceed at your own peril!</p>")
         self.groupboxLabel.setTitle("Label: FILESYSTEM PROBLEMS!")
     
     def axle_groups(self):
@@ -736,8 +744,8 @@ that you stop working now and investigate the cause of problems!""")
                 if not args.noseen_by:
                     self.metadata['seen_by'] = (datetime.datetime.now().timestamp(), getpass.getuser())
                     try:
-                        save_metadata(self.rv, self.metadata, metadata_filename, timeout=args.timeout)
-                    except RuntimeError as err:
+                        save_metadata(self.rv, self.metadata, metadata_filename, timeout=args.timeout, backup=True)
+                    except Exception as err:
                         self.metadata_file_error(err)
                 changed = ", ORIGINAL"
                 try:
@@ -988,8 +996,8 @@ that you stop working now and investigate the cause of problems!""")
             if self.is_locked():
                 return
             try:
-                save_metadata(self.rv, self.metadata, metadata_filename, timeout=args.timeout)
-            except RuntimeError as err:
+                save_metadata(self.rv, self.metadata, metadata_filename, timeout=args.timeout, backup=True)
+            except Exception as err:
                 self.metadata_file_error(err)
             self.show_metadata()
         finally:
@@ -1096,7 +1104,10 @@ that you stop working now and investigate the cause of problems!""")
             progress.step()
             metadata = load_metadata(rv, metadata_filename)
             metadata['seen_by'] = (datetime.datetime.now().timestamp(), getpass.getuser())
-            save_metadata(rv, metadata, metadata_filename, timeout=args.timeout)
+            try:
+                save_metadata(rv, metadata, metadata_filename, timeout=args.timeout, backup=True)
+            except Exception as err:
+                self.metadata_file_error(err)
 
 
 # Load window
