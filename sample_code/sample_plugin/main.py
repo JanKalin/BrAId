@@ -78,9 +78,9 @@ def conf_files(module_name):
 
 _returned_version = False
 
-def return_version(swu):
+def return_version(swu, force=False):
     global _returned_version
-    if _returned_version:
+    if _returned_version and not force:
         return
     swu.log('LM_INFO', f"Versions: {os.path.split(os.path.realpath(sdir))[1]} v{__version__}, swm v{__swm_version__}, objects v{constants.OBJECT_VERSION}", False)
     _returned_version = True
@@ -111,7 +111,7 @@ def process_args_conf(item):
 # CONF file
 ###############################################################################
 
-def process_swu(module_name, data, wrapper=False):
+def process_swu(module_name, data, wrapped=False):
     """This function reads data, possibly parses and loads parameters and
     other files
     
@@ -124,7 +124,8 @@ def process_swu(module_name, data, wrapper=False):
            
         # Read SWU and perhaps set version
         swu = factory.read_blob(data)
-        return_version(swu)
+        if not wrapped:
+            return_version(swu)
         
         # Load CONF files
         try:
@@ -157,28 +158,28 @@ def process_swu(module_name, data, wrapper=False):
                         swu.log('LM_INFO', "Loaded dynamic module", False)
                     except Exception as e:
                         swu.log('LM_ERROR', str(e), True)
-                        return swu.value(wrapper)
+                        return swu.value(wrapped)
         except KeyError:
             pass
         except ValueError as e:
             swu.log('LM_ERROR', str(e), True)
-            return swu.value(wrapper)
+            return swu.value(wrapped)
         
         # Just return if we don't have data or if it's not an event
         if not swu.data() or swu.data().class_name() != event.Event.Class_Name():
-            return swu.value(wrapper)
+            return swu.value(wrapped)
         
         # If conf has not been loaded, it's an error
         if not _conf_loaded:
             swu.log('LM_ERROR', f"{module_name}_args.conf not loaded", True)
-            return swu.value(wrapper)
+            return swu.value(wrapped)
 
         #######################################################################
         # Process data here
         #######################################################################
         
         # And we're done
-        return swu.value(wrapper)
+        return swu.value(wrapped)
    
     # Any non-caught error that occurs during processing is logged as critical.
     except Exception:
@@ -187,5 +188,5 @@ def process_swu(module_name, data, wrapper=False):
         errswu = factory.SWU()
         errswu.log('LM_CRITICAL', f"Unhandled error in Python scripts: {message}", True)
         return_version(errswu)
-        return errswu.value(wrapper)
+        return errswu.value(wrapped)
 
