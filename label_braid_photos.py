@@ -944,7 +944,10 @@ class Window(QMainWindow, Ui_MainWindow):
                     print(f"Cannot load file {filename}")
                     beep()
                     return
-                df = event.diag['vehicle_fad'].df()
+                try:
+                    df = event.diag['vehicle_fad'].df()
+                except KeyError:
+                    df = event.module_trace.last_module('vehicle_fad').diags[0][1].df()
                 ylim = {}
                 for lane, chs in enumerate([['11admp', '11diff'], ['21admp', '21diff']]):
                     for ch in chs:
