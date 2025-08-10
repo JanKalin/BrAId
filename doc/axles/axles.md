@@ -100,6 +100,42 @@ Za vozila iz množice $\mathbb N$ pa bi bilo treba rekonstruirati $q'''$. Za to 
 
 Tako imamo, PMSM, vse potrebne podatke, da bi iz signala lahko dobili pulze za določanje pozicij osi in s tem za boljše tehtanje.
 
+### Izbira podatkov
+
+Najprej je izmed vseh podatkov o vozilih treba izbrati primerne za nadaljnjo obdelavo. Iz datotek `braid.nswd` v direktorijih `rp01` (rezultati neposrednega tehtanja z vklopljeno rekonstrukcijo) in `rp03` (rezultati popravljeni s `fix.py` in ročnimi popravki) smo izbrali tiste, ki so v obeh datotekah. To je nujno, ker strojni in ročni popravki včasih razdelijo vozila na eno ali več vozil ali združijo dve vozili v eno. Število takšnih vozil je 251328.
+
+Od teh je treba izbrati samo tista vozila, ki so v datoteki `metadata.hdf5` (saj smo iz originalnih `braid.nswd` datotek vzeli le podmnožico vozil — glej [lbp.pdf](..\lbp\lbp.pdf)  za detajle) skupaj 175926 vozil. Izmed teh vozil smo izločili tiste, ki:
+
+- niso bili ročno preverjeni (polje `seen_by` je prazno) in
+- pri katerih polje `axle_groups` *ni* prazno (število osi se ne ujema s sliko)
+
+S takšno izbiro nam ostane množica 56224 vozil, ki:
+
+- So šla skozi celotno procesno verigo, vključno z ročnimi popravki in
+- se število osi dobljeno z rekonstrukcijo ter strojnimi in ročni popravki ujema s številom osi na sliki
+
+s tem pa imamo, v danih okoliščinah, najboljši možen nabor za treniranje NN. 
+
+#### Vmesne datoteke
+
+Rezultat izbire podatkov so štiri datoteke, `vehicles_for_axles-<KEY>.json`, kjer vrednosti `<KEY>` pomenijo:
+
+- `nop`: Vozilo se ni spremenilo (55057 vozil)
+- `mov`: Vozilu so se osi samo premaknile. To je načeloma posledica ročnega popravljanja (325 vozil)
+- `add`: Vozilu so se osi dodale (161 vozil)
+- `del`: Vozilu so se osi pobrisale (681 vozil)
+
+Format datotek je enak: spisek vnosov, kjer so v vsakem vnosu polja:
+
+- `ts`: Timestamp vozila
+- `ts_str`: Berljiv timestamp vozila
+- `ets`: Timestamp ustrezajočega event-a
+- `ets_str`: Berljiv timestamp ustrezajočega event-a
+- `v1` in `v2`, ki opisujeta vozili iz `rp01` in `rp03` in katerih polja so:
+  - `axle_groups`: Skupine osi
+  - `flags`: Zastavice z informacijo o napakah/spremembah
+  - `axle_distance`: Spisek medosnih razdalj
+
 
 
 

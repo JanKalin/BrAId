@@ -2,24 +2,30 @@
 
 import json
 import os
+import sys
 
 import h5py
 
-from locallib import load_metadata, save_metadata
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(os.path.dirname(SCRIPT_DIR), 'siwim-pi'))
+sys.path.append(os.path.join(os.path.dirname(SCRIPT_DIR), '..', 'siwim-pi'))
+
 from swm.utils import Progress
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 srcfile = os.path.join(SCRIPT_DIR, "data", "metadata.hdf5")
 dstfile = os.path.join(SCRIPT_DIR, "data", "metadata_compact.hdf5")
 
 #%% Count vehicles in input file
+
+seen = [0, 0]
 
 with h5py.File(srcfile, 'r') as src:
     src_count = 0
     for grp in src:
         for veh in src[grp]:
             src_count += 1
-    print(f"src vehicles: {src_count}")
+            seen[json.loads(src[f"{grp}/{veh}"].asstr()[()])['seen_by'] is not None] += 1
+    print(f"src vehicles: {src_count}, seen: {seen[1]}, unseen: {seen[0]}, total: {seen[0] + seen[1]}")
     print("Last photo", grp, veh, src[f"{grp}/{veh}"].asstr()[()])
     
 #%% Copy data

@@ -71,7 +71,8 @@ with open(os.path.join(SCRIPT_DIR, 'data', "recognized_vehicles.json"), 'w') as 
 
 #%%
 
-remaining_v2e = {key.timestamp(): value.timestamp() for (key, value) in vehicle2event.items()}
+raise RuntimeError("Please use the script `vehicle2event.py` to generate `vehicle2event.json`")
 
-with open(os.path.join(SCRIPT_DIR, 'data', "vehicle2event.json"), 'w') as f:
-    json.dump(remaining_v2e, f)
+# remaining_v2e = {key.timestamp(): value.timestamp() for (key, value) in vehicle2event.items()}
+# with open(os.path.join(SCRIPT_DIR, 'data', "vehicle2event.json"), 'w') as f:
+#     json.dump(remaining_v2e, f)

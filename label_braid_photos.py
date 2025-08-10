@@ -75,7 +75,7 @@ try:
         # args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo e:\yolo_photos --noseen".split())
         # args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo b:\yolo_photos --noseen --findmany data/missed_ids.txt data/missed_batch_idx.txt".split())
         # args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data".split())
-        args = parser.parse_args(r"".split())
+        args = parser.parse_args(r"--noseen_by".split())
     else:
         raise Exception
 except:
