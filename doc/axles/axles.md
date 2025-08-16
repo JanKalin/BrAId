@@ -90,53 +90,63 @@ Tudi če bi imeli shranjene signale $q'''$, nam to samo po sebi ne bi pomagalo, 
 
 Nazadnje smo za pripravo ground truth CV ML podatkov iz množice vseh primernih meritev (shranjenih v datoteki `recognized_vehicles-ORIGINAL.json`, ki jo je zgeneriral Domen) izbrali samo tista vozila, ki so na pasu 1. Potem smo s pomočjo GUI skripte `label_braid_photos.py` pregledali precej fotografij, jih preverili in primerno označili.
 
-Označena vozila lahko razdelimo v množici pravilno in nepravilno detektiranih vozil. Če je $x=x'''$, je vozilo v $\mathbb P$, drugače je v  $\mathbb N$. Iz tega je nastala datoteka `metadata.hdf5`, ki jo je Domen uporabil kot vhod za treniranje NN, skupaj s fotografijami vozil.
+Označena vozila lahko razdelimo v množici pravilno in nepravilno detektiranih vozil. Če je $x=x'''$, je vozilo v $\mathbb P$, drugače je v  $\mathbb N$. Iz tega je nastala datoteka `metadata.hdf5`, ki jo je Domen uporabil kot vhod za treniranje NM, skupaj s fotografijami vozil.
 
 ## Rekonstrukcija signala $q'''$
 
-Če sem prav razumel, je problem v tem, da se pri vseh teh preslikavah transformira samo $x\mapsto x'''$, s čemer dobimo prave medosne razdalje, nimamo pa tudi $q\mapsto q'''$. Zato se ne da trenirati NN, da bi znal iz $s$ predvideti $q$, Učil bi se samo na pravilno detektiranih primerih, ne pa tudi kako iz "zoprnih" signalov dobiti prave osi. Ampak mislim, da bi se dalo ta problem zlahka zaobiti. Za vozila iz množice $\mathbb P$ je zadeva preprosta, $q'''$ je kar $q$, oziroma $p$.
+Če sem prav razumel, je problem v tem, da se pri vseh teh preslikavah transformira samo $x\mapsto x'''$, s čemer dobimo prave medosne razdalje, nimamo pa tudi $q\mapsto q'''$. Zato se ne da trenirati NM, da bi znal iz $s$ predvideti $q$, Učil bi se samo na pravilno detektiranih primerih, ne pa tudi kako iz "zoprnih" signalov dobiti prave osi. Ampak mislim, da bi se dalo ta problem zlahka zaobiti. Za vozila iz množice $\mathbb P$ je zadeva preprosta, $q'''$ je kar $q$, oziroma $p$.
 
-Za vozila iz množice $\mathbb N$ pa bi bilo treba rekonstruirati $q'''$. Za to pa pride v poštev Andrejeva ideja z uporabo, npr., prve medosne razdalje kot referenco. Verjetno nikoli (ali pa vsaj v samo izjemno majhnem deležu primerov) namreč niso spremenjene prav vse medosne razdalje. Med medosnimi razdaljami $x$ in $x'''$ bi se poiskalo pare enakih medosnih razdalj in s pomočjo teh (ali verjetno najdaljše ustrezajoče izmed teh) določilo skalo signala $q$. S tem in z $x'''$ pa so dani vsi podatki, s katerimi bi se dalo rekonstruirati signal $q'''$, ki bi bil, poleg signala $s$, vhod v NN.
+Za vozila iz množice $\mathbb N$ pa bi bilo treba rekonstruirati $q'''$. Za to pa pride v poštev Andrejeva ideja z uporabo, npr., prve medosne razdalje kot referenco. Verjetno nikoli (ali pa vsaj v samo izjemno majhnem deležu primerov) namreč niso spremenjene prav vse medosne razdalje. Med medosnimi razdaljami $x$ in $x'''$ bi se poiskalo pare enakih medosnih razdalj in s pomočjo teh (ali verjetno najdaljše ustrezajoče izmed teh) določilo skalo signala $q$. S tem in z $x'''$ pa so dani vsi podatki, s katerimi bi se dalo rekonstruirati signal $q'''$, ki bi bil, poleg signala $s$, vhod v NM.
 
 Tako imamo, PMSM, vse potrebne podatke, da bi iz signala lahko dobili pulze za določanje pozicij osi in s tem za boljše tehtanje.
 
-### Izbira podatkov
+### Izbira vhodnih podatkov in strategija za treniranje NM
 
-Najprej je izmed vseh podatkov o vozilih treba izbrati primerne za nadaljnjo obdelavo. Iz datotek `braid.nswd` v direktorijih `rp01` (rezultati neposrednega tehtanja z vklopljeno rekonstrukcijo) in `rp03` (rezultati popravljeni s `fix.py` in ročnimi popravki) smo izbrali tiste, ki so v obeh datotekah. To je nujno, ker strojni in ročni popravki včasih razdelijo vozila na eno ali več vozil ali združijo dve vozili v eno. Število takšnih vozil je 251328.
+Najprej je izmed vseh podatkov o vozilih treba izbrati primerne za učenje NM. Iz datotek `braid.nswd` v direktorijih `rp01` (rezultati neposrednega tehtanja z vklopljeno rekonstrukcijo) in `rp03` (rezultati popravljeni s `fix.py` in ročnimi popravki) smo izbrali tiste s pasu 1, ki so v obeh datotekah. To je nujno, ker strojni in ročni popravki včasih razdelijo vozila na eno ali več vozil ali združijo dve vozili v eno. Število takšnih vozil je 210604. Od teh je treba izbrati samo tista vozila, ki so v datoteki `metadata.hdf5` (saj smo iz originalnih `braid.nswd` datotek vzeli le podmnožico vozil — glej [lbp.pdf](..\lbp\lbp.pdf)  za detajle) skupaj 175926 vozil. Izmed teh smo izločili 132250 vozil, ki niso bili ročno preverjeni (polje `seen_by` je prazno).
 
-Od teh je treba izbrati samo tista vozila, ki so v datoteki `metadata.hdf5` (saj smo iz originalnih `braid.nswd` datotek vzeli le podmnožico vozil — glej [lbp.pdf](..\lbp\lbp.pdf)  za detajle) skupaj 175926 vozil. Izmed teh vozil smo izločili tiste, ki:
+Ostane 43676 videnih vozil od katerih se pri 35852 grupe osi na fotografiji ujemajo z grupami osi v podatkih, pri 7824 pa ne. Vendar to število zajema tudi 6549 vozil z dvignjeno osjo (polje `raised_axles` v `metadata.hdf5` ni prazno), kjer osi preprosto ne moremo detektirati. Ostane 1275 vozil pri katerih ne rekonstrukcija, ne strojni ali ročni niso pravilno določili grupe osi. To je približno 2.9% vozil, pri katerih bi lahko NM morda izboljšala detekcijo.
 
-- niso bili ročno preverjeni (polje `seen_by` je prazno) in
-- pri katerih polje `axle_groups` *ni* prazno (število osi se ne ujema s sliko)
-
-S takšno izbiro nam ostane množica 56224 vozil, ki:
-
-- So šla skozi celotno procesno verigo, vključno z ročnimi popravki in
-- se število osi dobljeno z rekonstrukcijo ter strojnimi in ročni popravki ujema s številom osi na sliki
-
-s tem pa imamo, v danih okoliščinah, najboljši možen nabor za treniranje NN. 
+Imamo torej 35852 vozil za treniranje NM ter 1275 vozil na katerih lahko preverimo uspešnost. Treba je omeniti, da v metapodatkih *ni* podatka o dejanskih pravilnih medosnih razdaljah, temveč samo o pravilnih skupinah osi. Vendar je v tej fazi tudi da podatek pomemben in dober indikator delovanja NM. Vemo tudi, da je najpogostejša napaka izguba kakšne izmed osi v skupini. Če NM skupine 112 popravi v 113, je to zelo verjetno pravilno.
 
 #### Vmesne datoteke
 
-Rezultat izbire podatkov so štiri datoteke, `vehicles_for_axles-<KEY>.json`, kjer vrednosti `<KEY>` pomenijo:
-
-- `nop`: Vozilo se ni spremenilo (55057 vozil)
-- `mov`: Vozilu so se osi samo premaknile. To je načeloma posledica ročnega popravljanja (325 vozil)
-- `add`: Vozilu so se osi dodale (161 vozil)
-- `del`: Vozilu so se osi pobrisale (681 vozil)
+Rezultat neposredne izbire podatkov je datoteka `vehicles_for_axles.json`, spisek vozil z njihovimi atributi:
 
 Format datotek je enak: spisek vnosov, kjer so v vsakem vnosu polja:
 
 - `ts`: Timestamp vozila
+
 - `ts_str`: Berljiv timestamp vozila
+
 - `ets`: Timestamp ustrezajočega event-a
+
 - `ets_str`: Berljiv timestamp ustrezajočega event-a
-- `v1` in `v2`, ki opisujeta vozili iz `rp01` in `rp03` in katerih polja so:
+
+- `match`: Zastavica ki potrdi ujemanje skupin osi na fotografiji in v podatkih. Če je zastavica `False`, se pojavijo dodatna polja:
+
+  - `axle_groups`: Skupine določene v metapodatkih
+  - `raised_axles`: To polje je prisotno, ko je prisotno tudi v metapodatkih — če ima vozilo dvignjene osi. S tem lahko ločimo neujemanje zaradi napačne detekcije osi in dvignjenih osi.
+
+- `vehicles`: Dict z dvema vnosoma: `weighed` je vozilo iz direktorija `rp01` (samo SiWIM izračuni), `manual` iz `rp03` (vključuje strojne in ročne popravke). V obeh so polja
+
   - `axle_groups`: Skupine osi
-  - `flags`: Zastavice z informacijo o napakah/spremembah
   - `axle_distance`: Spisek medosnih razdalj
+  - `axle_weight`: Spisek osnih pritiskov
+  - `rcn`: Zastavica, ki označi ali je vozilo plod rekonstrukcije
+  - `fix`: Zastavica, ki pove ali je bil izveden strojni popravek
+  - `man`: Zastavica, ki pove ali je bil izveden ročni popravek
 
+  V vozilu `manual` sta dodatni dve polji, `distance_op`, ki ima lahko vrednosti:
+  - `nop`: Medosne razdalje se niso spremenile
+  - `mov`: Vozilu so se osi samo premaknile. To je načeloma posledica ročnega popravljanja
+  - `add`: Vozilu so se osi dodale
+  - `del`: Vozilu so se osi pobrisale
 
+  ter polje `weight_op`, katerega vrednost je lahko:
+
+  - `nop`: Če so osni pritiski nespremenjeni
+  - `chg`: Če so osni pritiski spremenjeni
+  - `undef`: Če se je število osi spremenilo
 
 
 

@@ -70,7 +70,7 @@ parser.add_argument("--findmany", help="Find many IDs. Arguments are input file 
 parser.add_argument("--dumpbatches", help="Create a batches.json file containing information about batches", action='store_true')
 
 try:
-    __IPYTHON__
+    __IPYTHON__ #noqa
     if True and getpass.getuser() == 'jank':
         # args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo e:\yolo_photos --noseen".split())
         # args = parser.parse_args(r"--metadata n:\disk_600_konstrukcije\JanK\braid_photo\data --photo b:\yolo_photos --noseen --findmany data/missed_ids.txt data/missed_batch_idx.txt".split())
