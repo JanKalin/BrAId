@@ -22,11 +22,12 @@ parser = argparse.ArgumentParser(description="Compare axle distances from two NS
 parser.add_argument("--data_dir", help="Data directory", default=os.path.join(SCRIPT_DIR, 'data'))
 parser.add_argument("--siwim_site", help="SiWIM site", default=r"E:\sites\original\AC_Sentvid_2012_2")
 parser.add_argument("--nswd", help="NSWD name", default="2014-03-05.nswd")
+parser.add_argument("--noreconstruct", help="Ignore reconstructed vehicles", action='store_true')
 
 try:
     __IPYTHON__ # noqa
     if True and getpass.getuser() == 'jank':
-        args = parser.parse_args(r"".split())
+        args = parser.parse_args(r"--noreconstruct".split())
     else:
         raise Exception
 except:
@@ -41,7 +42,7 @@ vehicle2event = {datetime.datetime.fromtimestamp(float(x)): datetime.datetime.fr
 #%% Find first and last timestamps
 
 vehicles = {}
-allrps = ['rp41', 'rp42']
+allrps = ['rp01', 'rp41']
 
 for rp in allrps:
     print("Reading", rp)
@@ -71,6 +72,9 @@ count = {True: 0, False: 0}
 timestamps = []
 
 for ts in all_tss:
+    
+    if args.noreconstruct and (vehicles[rps[0]][ts].vehiclereconstructedflag() or vehicles[rps[1]][ts].vehiclereconstructedflag()):
+        continue
 
     cmp = compare(len(vehicles[rps[0]][ts].axle_distance), len(vehicles[rps[1]][ts].axle_distance))
     if not cmp:

@@ -102,15 +102,17 @@ Tako imamo, PMSM, vse potrebne podatke, da bi iz signala lahko dobili pulze za d
 
 ### Izbira vhodnih podatkov in strategija za treniranje NM
 
-Najprej je izmed vseh podatkov o vozilih treba izbrati primerne za učenje NM. Iz datotek `braid.nswd` v direktorijih `rp01` (rezultati neposrednega tehtanja z vklopljeno rekonstrukcijo) in `rp03` (rezultati popravljeni s `fix.py` in ročnimi popravki) smo izbrali tiste s pasu 1, ki so v obeh datotekah. To je nujno, ker strojni in ročni popravki včasih razdelijo vozila na eno ali več vozil ali združijo dve vozili v eno. Število takšnih vozil je 210604. Od teh je treba izbrati samo tista vozila, ki so v datoteki `metadata.hdf5` (saj smo iz originalnih `braid.nswd` datotek vzeli le podmnožico vozil — glej [lbp.pdf](..\lbp\lbp.pdf)  za detajle) skupaj 175926 vozil. Izmed teh smo izločili 132250 vozil, ki niso bili ročno preverjeni (polje `seen_by` je prazno).
+Najprej je izmed vseh podatkov o vozilih treba izbrati primerne za učenje NM. Iz datotek `braid.nswd` v direktorijih `rp01` (rezultati neposrednega tehtanja z vklopljeno rekonstrukcijo) in `rp03` (rezultati popravljeni s `fix.py` in ročnimi popravki) smo izbrali tiste s pasu 1, ki so v obeh datotekah. To je nujno, ker strojni in ročni popravki včasih razdelijo vozila na eno ali več vozil ali združijo dve vozili v eno. Hkrati smo izločili vozila, ki niso sama na pasu 1, ne glede na to, ali je večkratna prisotnost ali ne. Izkazalo se je, da je pri takšnih vozilih včasih prišlo do zmede pri pregledovanju in bolj varno je, da se jih izloči. Od 210604 vozil nam jih tako ostane 200250.
 
-Ostane 43676 videnih vozil od katerih se pri 35852 grupe osi na fotografiji ujemajo z grupami osi v podatkih, pri 7824 pa ne. Vendar to število zajema tudi 6549 vozil z dvignjeno osjo (polje `raised_axles` v `metadata.hdf5` ni prazno), kjer osi preprosto ne moremo detektirati. Ostane 1275 vozil pri katerih ne rekonstrukcija, ne strojni ali ročni niso pravilno določili grupe osi. To je približno 2.9% vozil, pri katerih bi lahko NM morda izboljšala detekcijo.
+Od teh je treba izbrati samo tista vozila, ki so v datoteki `metadata.hdf5` (saj smo iz originalnih `braid.nswd` datotek vzeli le podmnožico vozil — glej [lbp.pdf](..\lbp\lbp.pdf)  za detajle) skupaj 166949 vozil. Izmed teh smo izločili 125451 vozil, ki niso bili ročno preverjeni (polje `seen_by` je prazno). 
 
-Imamo torej 35852 vozil za treniranje NM ter 1275 vozil na katerih lahko preverimo uspešnost. Treba je omeniti, da v metapodatkih *ni* podatka o dejanskih pravilnih medosnih razdaljah, temveč samo o pravilnih skupinah osi. Vendar je v tej fazi tudi da podatek pomemben in dober indikator delovanja NM. Vemo tudi, da je najpogostejša napaka izguba kakšne izmed osi v skupini. Če NM skupine 112 popravi v 113, je to zelo verjetno pravilno.
+Ostane 41498 videnih vozil od katerih se pri 34160 grupe osi na fotografiji ujemajo z grupami osi v podatkih, pri 7338 pa ne. Vendar to število zajema tudi 6166 vozil z dvignjeno osjo (polje `raised_axles` v `metadata.hdf5` ni prazno), kjer osi preprosto ne moremo detektirati. Ostane 1172 vozil pri katerih niti rekonstrukcija, ne strojni ali ročni popravki niso pravilno določili grupe osi. To je približno 2.8% vozil, pri katerih bi lahko NM morda izboljšala detekcijo.
+
+Imamo torej 34160 vozil za treniranje NM ter 1172 vozil na katerih lahko preverimo uspešnost. Treba je omeniti, da v metapodatkih *ni* podatka o dejanskih pravilnih medosnih razdaljah, temveč samo o pravilnih skupinah osi. Vendar je v tej fazi tudi da podatek pomemben in dober indikator delovanja NM. Vemo tudi, da je najpogostejša napaka izguba kakšne izmed osi v skupini. Če NM skupine 112 popravi v 113, je to zelo verjetno pravilno. Število testnih vozil pa je tudi dovolj majhno, da lahko ročno pregledamo rezultate.
 
 #### Vmesne datoteke
 
-Rezultat neposredne izbire podatkov je datoteka `vehicles_for_axles.json`, spisek vozil z njihovimi atributi:
+Rezultat neposredne izbire podatkov je datoteka `vehicles_for_axles.json`, spisek videnih vozil z njihovimi atributi:
 
 Format datotek je enak: spisek vnosov, kjer so v vsakem vnosu polja:
 
@@ -127,7 +129,7 @@ Format datotek je enak: spisek vnosov, kjer so v vsakem vnosu polja:
   - `axle_groups`: Skupine določene v metapodatkih
   - `raised_axles`: To polje je prisotno, ko je prisotno tudi v metapodatkih — če ima vozilo dvignjene osi. S tem lahko ločimo neujemanje zaradi napačne detekcije osi in dvignjenih osi.
 
-- `vehicles`: Dict z dvema vnosoma: `weighed` je vozilo iz direktorija `rp01` (samo SiWIM izračuni), `manual` iz `rp03` (vključuje strojne in ročne popravke). V obeh so polja
+- `vehicles`: Dict z dvema vnosoma: `weighed` je vozilo iz direktorija `rp01` (samo SiWIM izračuni), `final` iz `rp03` (vključuje strojne in ročne popravke). V obeh so polja
 
   - `axle_groups`: Skupine osi
   - `axle_distance`: Spisek medosnih razdalj
@@ -136,17 +138,17 @@ Format datotek je enak: spisek vnosov, kjer so v vsakem vnosu polja:
   - `fix`: Zastavica, ki pove ali je bil izveden strojni popravek
   - `man`: Zastavica, ki pove ali je bil izveden ročni popravek
 
-  V vozilu `manual` sta dodatni dve polji, `distance_op`, ki ima lahko vrednosti:
-  - `nop`: Medosne razdalje se niso spremenile
-  - `mov`: Vozilu so se osi samo premaknile. To je načeloma posledica ročnega popravljanja
-  - `add`: Vozilu so se osi dodale
-  - `del`: Vozilu so se osi pobrisale
+  V vozilu `final` sta dodatni dve polji, `distance_op`, ki ima lahko vrednosti:
+  - `nop`: Medosne razdalje se niso spremenile (40530 vozil)
+  - `mov`: Vozilu so se osi samo premaknile. To je načeloma posledica ročnega popravljanja (282 vozil)
+  - `add`: Vozilu so se osi dodale (138 vozil)
+  - `del`: Vozilu so se osi pobrisale (548 vozil)
 
   ter polje `weight_op`, katerega vrednost je lahko:
 
   - `nop`: Če so osni pritiski nespremenjeni
   - `chg`: Če so osni pritiski spremenjeni
-  - `undef`: Če se je število osi spremenilo
+  - `undef`: Če se je število osi spremenilo in osnih pritiskov ne moremo primerjati
 
 
 
