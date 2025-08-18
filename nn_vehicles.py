@@ -115,6 +115,7 @@ for ts in tss:
                 metadata[ts]['raised_axles'] = data['raised_axles']
                 counter['raised'] += 1
             except:
+                metadata[ts]['raised_axles'] = ""
                 counter['nonraised'] += 1
         except:
             metadata[ts]['photo_match'] = True

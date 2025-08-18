@@ -74,6 +74,7 @@ for item in input_vehicles:
     for idx in range(longest.b, -1, -1):
         pulse_f[idx] = pulse_f[idx + 1] - diff_f[idx]
     item['vehicle']['final']['axle_pulses'] = pulse_f
+    item['scale'] = scale
     
     # Done
     output_vehicles.append(item)
@@ -82,7 +83,3 @@ print(f"eligible: {eligible}")
 
 with open(os.path.join(args.data_dir, args.dst), 'w') as f:
     json.dump(output_vehicles, f, indent=2)
-
-with open(os.path.join(args.data_dir, "debug.json"), 'w') as f:
-    json.dump([x for x in output_vehicles if x['vehicle']['final']['distance_op'] != 'nop'], f, indent=2)
-    

@@ -108,7 +108,7 @@ Skripta `nn_vehicles.py` je namenjena izbiri vozil. Vhodni podatki so:
 - `metadata.hdf`, zbirka podatkov o pregledanih vozilih (glej [lbp.pdf](..\lbp\lbp.pdf)  za detajle)
 - Datoteka `recognized_vehicles.json`, ki povezuje timestamp vozila in vnos v `metadata.hdf`
 
-Najprej je izmed vseh podatkov o vozilih treba izbrati primerne za učenje NM. Iz datotek `NSWD` smo izbrali tiste s pasu 1, ki so v obeh datotekah. To je nujno, ker strojni in ročni popravki včasih razdelijo vozila na eno ali več vozil ali združijo dve vozili v eno. Hkrati smo izločili vozila, ki niso sama na pasu 1, ne glede na to, ali je večkratna prisotnost ali ne. Izkazalo se je, da je pri takšnih vozilih včasih prišlo do zmede pri pregledovanju in bolj varno je, da se jih izloči. Od vseh vozil nam jih tako ostane 199820.
+Najprej je izmed vseh podatkov o vozilih treba izbrati primerne za učenje NM. Iz datotek `.nswd` smo izbrali tiste s pasu 1, ki so v obeh datotekah. To je nujno, ker strojni in ročni popravki včasih razdelijo vozila na eno ali več vozil ali združijo dve vozili v eno. Hkrati smo izločili vozila, ki niso sama na pasu 1, ne glede na to, ali je večkratna prisotnost ali ne. Izkazalo se je, da je pri takšnih vozilih včasih prišlo do zmede pri pregledovanju in bolj varno je, da se jih izloči. Od vseh vozil nam jih tako ostane 199820.
 
 Od teh je treba izbrati samo tista vozila, ki so v datoteki `metadata.hdf5`, skupaj 166551 vozil. Izmed teh smo izločili 125161 vozil, ki niso bili ročno preverjeni (polje `seen_by` je prazno). 
 
@@ -126,10 +126,10 @@ Format datotek je enak: spisek vnosov, kjer so v vsakem vnosu polja:
 
 - `ets_str`: Berljiv timestamp ustrezajočega event-a
 
-- `photo_match`: Zastavica ki potrdi ujemanje skupin osi na fotografiji in v podatkih. Če je zastavica `False`, se pojavijo dodatna polja:
+- `photo_match`: Zastavica ki potrdi ujemanje skupin osi na fotografiji in v `rp03` podatkih. Če je zastavica `False`, se pojavijo dodatna polja:
 
   - `axle_groups`: Skupine določene v metapodatkih
-  - `raised_axles`: To polje je prisotno, ko je prisotno tudi v metapodatkih — če ima vozilo dvignjene osi. S tem lahko ločimo neujemanje zaradi napačne detekcije osi in dvignjenih osi.
+  - `raised_axles`: To polje vsebuje spisek dvignjenih osi ali prazni niz, če ni dvignjenih osi. S tem lahko ločimo neujemanje zaradi napačne detekcije osi in dvignjenih osi.
 
 - `vehicle`: Dict z dvema vnosoma: `weighed` opisuje vozilo iz direktorija `rp01`, `final` iz `rp03`. V obeh so polja
 
@@ -166,17 +166,17 @@ Zato smo iz starih event-ov prebrali nastavitve in z njimi ponovno procesirali e
 
 Naslednji korak opravi skripta `nn_axles_and_signals.py`. Vhodni podatki so:
 
-- Datoteka `nn_vehicles.json` iz prvega koraka
-- Originalni event-i za branje osnih pulzov
-- Reprocesirani event-i za branje osnih signalov
+- Datoteka `nn_vehicles.json` iz prvega koraka.
+- Originalni event-i za branje osnih pulzov.
+- Reprocesirani event-i za branje osnih signalov.
 
 Skripta za vsako izmed vozil prebere ustrezna event-a in iz njiju ekstrahira želene podatke.
 
 V izhodni datoteki `nn_axles.json` so vnosi iz `nn_vehicles.json` razširjeni s sledečimi polji:
 
-- Dict `vehicle` se razširi z vnosom `detected` za detektirana vozila (pred tehtanjem in predvsem rekonstrukcijo)
-- Vnosoma `detected` in `weighed` v prejšnjem dict-u se doda polje `axle_pulses`, dobljeno iz list `detected_vehicles` in `weighed_vehicles` iz originalnega event-a
-- Vnosu `weighed` se doda `distance_op`, z istim pomenom, kot v vnosu `final`
+- Dict `vehicle` se razširi z vnosom `detected` za detektirana vozila (pred tehtanjem in predvsem rekonstrukcijo).
+- Vnosoma `detected` in `weighed` v prejšnjem dict-u se doda polje `axle_pulses`, dobljeno iz list `detected_vehicles` in `weighed_vehicles` iz originalnega event-a. Vrednosti so indeks vzorca naraščajočega roba, šteto od začetka signala.
+- Vnosu `weighed` se doda `distance_op`, z istim pomenom, kot v vnosu `final`.
 
 V izhodni datoteki `nn_signals.hdf5`  pa so zbrani signali. Za vsako vozilo je kreirana grupa, katere ime je berljiv timestamp vozila, npr., `2014-03-12-14-34-07-337`. Znotraj grupe so spravljeni `numpy` array-ji:
 
@@ -184,19 +184,19 @@ V izhodni datoteki `nn_signals.hdf5`  pa so zbrani signali. Za vsako vozilo je k
 - `s112 a11`: Drugi signal za detekcijo osi.
 - `11admp`: Kombinirani signal za detekcijo osi.
 - `11admp''`: Signal z odšteto envelopo. Ideja je, da se najde minimum signala `11admp`, konstruira trikotnik skozi začetno točko signala, minimum ter končno točko signala, ter ta trikotnik odšteje od signala. Rezultat je ta, da se znebimo precejšnjega dela negativne komponente signala.
-- `11avg1`: Prvo drseče povprečje signala `11admp''` z dolžino povprečenja enako 1.1&nbsp;m
-- `11avg2`: Drugo drseče povprečje signala `11admp''` z dolžino povprečenja enako 0.3&nbsp;m.
+- `11avg1`: Prvo drseče povprečje signala `11admp''` z dolžino povprečenja enako 0.3&nbsp;m.
+- `11avg2`: Drugo drseče povprečje signala `11admp''` z dolžino povprečenja enako 1.1&nbsp;m.
 - Razlika `11diff = 11avg1 - 11avg2`, ki je osnova za algoritem za detekcijo. 
 
 ### Generiranje pulzov za končno verzijo vozil
 
 Za detektirana in tehtana vozila imamo na voljo pulze iz event-ov, za končna vozila pa žal ne. Zato jih je bilo treba generirati iz drugih podatkov.
 
-Vhodna datoteka je samo ena, `nn_axles.json` iz prejšnjega koraka, izhodna datoteka pa `nn_pulses.json`, v kateri so razširjeni vnosi. Algoritem je sledeč:
+Vhodna datoteka za skripto `nn_axles.py` je samo ena, `nn_axles.json` iz prejšnjega koraka, izhodna datoteka pa `nn_pulses.json`, v kateri so razširjeni vnosi. Algoritem je sledeč:
 
 - S pomočjo `difflib.SequenceMatcher` se poišče podobnost med medosnim razdaljami `weighed` in `final` vozil
 - Če se niti ena medosna razdalja ne ujema, vozilo ni kandidat za učenje in polje `eligible` se nastavi na `False`. Takšnih vozil je 161.
-- V preostalih 41229 primerih se poišče najdaljši ujemajoči se odsek medosnih razdalj. S pomočjo tega in osnih pulzov iz `weighed` se izračuna faktor skaliranja med medosnimi razdaljami in razdaljami med pulzi. Faktor je odvisen od hitrosti vzorčenja in hitrosti vozila.
+- V preostalih 41229 primerih se poišče najdaljši ujemajoči se odsek medosnih razdalj. S pomočjo tega in osnih pulzov iz `weighed` se izračuna faktor skaliranja med medosnimi razdaljami ter razdaljami med pulzi. Faktor je odvisen od hitrosti vzorčenja in hitrosti vozila. Ta faktor je shranjen pod ključem `scale`.
 - V polje `axle_pulses` za vnos`final` v dict-u `vehicle` se najprej prepiše tiste pulze iz `weighed`, ki so v najdaljšem ujemajočem se odseku, ostale pulze pa generira s pomočjo medosnih razdalj in faktorja skaliranja.
 
 ### Učenje
@@ -206,10 +206,105 @@ Na tem mestu imamo za vsa primerna vozila:
 - Signale iz detektorjev osi
 - Osne pulze
 
-Imamo 34087 vozil za treniranje NM ter 1162 vozil na katerih lahko preverimo uspešnost. 
+Podatki so shranjeni v BrAId pCloud-u v poddirektoriju `10_podatki/Axles`. Imamo 34087 vozil za treniranje NM ter 1162 vozil na katerih lahko preverimo uspešnost. 
 
-SiWIM algoritem deluje na razliki `11diff`. Vendar je pot do tega signala že sama po sebi "obremenjena" s hevristiko, predvsem pa je potrebno določiti nekaj parametrov, ki so ključnega pomena pri detekciji osi. Morda bi bilo smiselno poskusiti kar neposredno s signalom `11admp''`, katerega generiranje skoraj nič ni odvisno od človeka.
+#### Izbira signala
 
-Treba je omeniti, da v metapodatkih *ni* podatka o dejanskih pravilnih medosnih razdaljah, temveč samo o pravilnih skupinah osi. Vendar je v tej fazi tudi da podatek pomemben in dober indikator delovanja NM. Število testnih vozil pa je tudi dovolj majhno, da lahko ročno pregledamo rezultate.
+SiWIM algoritem deluje na razliki `11diff`. Vendar je pot do tega signala že sama po sebi "obremenjena" s hevristiko, predvsem pa je potrebno določiti nekaj parametrov, ki so ključnega pomena pri detekciji osi. 
+
+Morda bi bilo smiselno poskusiti kar neposredno s signalom `11admp''`, katerega generiranje skoraj nič ni odvisno od človeka.
+
+#### Preverjanje rezultatov
+
+Treba je omeniti, da v metapodatkih *ni* podatka o dejanskih pravilnih medosnih razdaljah, temveč samo o pravilnih skupinah osi. Vendar je v tej fazi tudi ta podatek pomemben in dober indikator delovanja NM. 
+
+Predpostavljam, da bo NM vrnila spisek pulzov. Iz spiska `pulses` se preveri medosne razdalje in grupe s sledečo kodo:
+
+```python
+import numpy as np
+
+def distances_and_groups(pulses, scale, group_max_distance=1.8):
+    """
+    Returns axle distances and groups
+
+    Parameters
+    ----------
+    pulses : list(int)
+        A list of axle pulses.
+    scale : float
+        scaling factor between pulses and axle distances.
+    group_max_distance : float, optional
+        Axles closer than this value are considered a part of a group.
+        The default is 1.8.
+
+    Returns
+    -------
+    A tuple, where the first element is a list of axle distances and the second
+    element is a string containing axle groups.
+
+    """
+    
+    # Axle distances are simple
+    axle_distances = [(y - x)/scale for (x, y) in zip(pulses[:-1], pulses[1:])]
+    
+    # Join into groups
+    axle_groups = ""
+    size = 1
+    for a in axle_distances:
+        if a > group_max_distance:
+            axle_groups += str(size)
+            size = 1
+        else:
+            size += 1
+    axle_groups += str(size)
+    
+    # Done
+    return (axle_distances, axle_groups)
+
+def fuzzy_match(a, b, tol=0.25, precision=6):
+    """
+    Returns true if the arrays a1 and a2 are the same length and the elements
+    are within `tolerance` of each other.
+
+    Parameters
+    ----------
+    a : list(float)
+        First array.
+    b : list(float)
+        Second array.
+    tol : float, optional
+        Tolerance for match. The default is 0.25.
+    precision : int, optional
+        Precision for comparison. Values from NSWD are only precise to 6
+        significant figures.
+
+    Returns
+    -------
+    bool.
+
+    """
+    
+    if len(a) != len(b):
+        return False
+    a = np.array([float(f"{x:.{precision}g}") for x in a])
+    b = np.array([float(f"{x:.{precision}g}") for x in b])
+    return (np.abs(a - b) <= tol).all()
+
+# Test
+pulses = [516, 591, 717, 744, 772]
+scale = 21.134021895176904
+true_axle_distances = [3.54878, 5.96195, 1.27756, 1.32488]
+true_groups = "113"
+tolerance = 0.25
+
+(axle_distances, axle_groups) = distances_and_groups(pulses, scale)
+print("Distances match:",
+      fuzzy_match(axle_distances, true_axle_distances))
+print("Groups match:",
+      axle_groups == true_groups)
+
+```
+
+Število testnih vozil pa je tudi dovolj majhno, da lahko ročno pregledamo rezultate.
 
 [^1]: Pri pripravi datoteke `grp_and_fixed.hdf5`, poslane 3.12.2024, o kateri smo tudi včeraj govorili, sem pozabil na te zastavice. Bom, ko vzpostavim ML PC doma, še enkrat vse skupaj zgeneriral. Vidim, da sem tudi v `metadata.hdf` po nepotrebnem združil zastavice za ročne spremembe z zastavico `Flag_QA_Fixed`. Bom tudi to popravil, da bosta to ločena podatka.
