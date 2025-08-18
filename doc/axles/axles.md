@@ -98,21 +98,23 @@ Označena vozila lahko razdelimo v množici pravilno in nepravilno detektiranih 
 
 Za vozila iz množice $\mathbb N$ pa bi bilo treba rekonstruirati $q'''$. Za to pa pride v poštev Andrejeva ideja z uporabo, npr., prve medosne razdalje kot referenco. Verjetno nikoli (ali pa vsaj v samo izjemno majhnem deležu primerov) namreč niso spremenjene prav vse medosne razdalje. Med medosnimi razdaljami $x$ in $x'''$ bi se poiskalo pare enakih medosnih razdalj in s pomočjo teh (ali verjetno najdaljše ustrezajoče izmed teh) določilo skalo signala $q$. S tem in z $x'''$ pa so dani vsi podatki, s katerimi bi se dalo rekonstruirati signal $q'''$, ki bi bil, poleg signala $s$, vhod v NM.
 
-Tako imamo, PMSM, vse potrebne podatke, da bi iz signala lahko dobili pulze za določanje pozicij osi in s tem za boljše tehtanje.
+Tako imamo, PMSM, vse potrebne podatke, da bi iz signala lahko dobili pulze za določanje pozicij osi in s tem za boljše tehtanje. V naslednjih razdelkih so opisani koraki do nabora podatkov, ki so primerni za treniranje NM. Zaradi preprostosti in ločevanja dolgotrajnih postopkov so uporabljene tri Python skripte.
 
-### Izbira vhodnih podatkov in strategija za treniranje NM
+### Izbira vozil
 
-Najprej je izmed vseh podatkov o vozilih treba izbrati primerne za učenje NM. Iz datotek `braid.nswd` v direktorijih `rp01` (rezultati neposrednega tehtanja z vklopljeno rekonstrukcijo) in `rp03` (rezultati popravljeni s `fix.py` in ročnimi popravki) smo izbrali tiste s pasu 1, ki so v obeh datotekah. To je nujno, ker strojni in ročni popravki včasih razdelijo vozila na eno ali več vozil ali združijo dve vozili v eno. Hkrati smo izločili vozila, ki niso sama na pasu 1, ne glede na to, ali je večkratna prisotnost ali ne. Izkazalo se je, da je pri takšnih vozilih včasih prišlo do zmede pri pregledovanju in bolj varno je, da se jih izloči. Od 210604 vozil nam jih tako ostane 200250.
+Skripta `nn_vehicles.py` je namenjena izbiri vozil. Vhodni podatki so:
 
-Od teh je treba izbrati samo tista vozila, ki so v datoteki `metadata.hdf5` (saj smo iz originalnih `braid.nswd` datotek vzeli le podmnožico vozil — glej [lbp.pdf](..\lbp\lbp.pdf)  za detajle) skupaj 166949 vozil. Izmed teh smo izločili 125451 vozil, ki niso bili ročno preverjeni (polje `seen_by` je prazno). 
+- Datoteki `braid.nswd` v direktorijih `rp01` in `rp03`, v katerih so podatki o vozilih po tehtanju in rekonstrukciji ter po strojnih in ročnih popravkih
+- `metadata.hdf`, zbirka podatkov o pregledanih vozilih (glej [lbp.pdf](..\lbp\lbp.pdf)  za detajle)
+- Datoteka `recognized_vehicles.json`, ki povezuje timestamp vozila in vnos v `metadata.hdf`
 
-Ostane 41498 videnih vozil od katerih se pri 34160 grupe osi na fotografiji ujemajo z grupami osi v podatkih, pri 7338 pa ne. Vendar to število zajema tudi 6166 vozil z dvignjeno osjo (polje `raised_axles` v `metadata.hdf5` ni prazno), kjer osi preprosto ne moremo detektirati. Ostane 1172 vozil pri katerih niti rekonstrukcija, ne strojni ali ročni popravki niso pravilno določili grupe osi. To je približno 2.8% vozil, pri katerih bi lahko NM morda izboljšala detekcijo.
+Najprej je izmed vseh podatkov o vozilih treba izbrati primerne za učenje NM. Iz datotek `NSWD` smo izbrali tiste s pasu 1, ki so v obeh datotekah. To je nujno, ker strojni in ročni popravki včasih razdelijo vozila na eno ali več vozil ali združijo dve vozili v eno. Hkrati smo izločili vozila, ki niso sama na pasu 1, ne glede na to, ali je večkratna prisotnost ali ne. Izkazalo se je, da je pri takšnih vozilih včasih prišlo do zmede pri pregledovanju in bolj varno je, da se jih izloči. Od vseh vozil nam jih tako ostane 199820.
 
-Imamo torej 34160 vozil za treniranje NM ter 1172 vozil na katerih lahko preverimo uspešnost. Treba je omeniti, da v metapodatkih *ni* podatka o dejanskih pravilnih medosnih razdaljah, temveč samo o pravilnih skupinah osi. Vendar je v tej fazi tudi da podatek pomemben in dober indikator delovanja NM. Vemo tudi, da je najpogostejša napaka izguba kakšne izmed osi v skupini. Če NM skupine 112 popravi v 113, je to zelo verjetno pravilno. Število testnih vozil pa je tudi dovolj majhno, da lahko ročno pregledamo rezultate.
+Od teh je treba izbrati samo tista vozila, ki so v datoteki `metadata.hdf5`, skupaj 166551 vozil. Izmed teh smo izločili 125161 vozil, ki niso bili ročno preverjeni (polje `seen_by` je prazno). 
 
-#### Vmesne datoteke
+Ostane 41390 videnih vozil, od katerih se pri 34087 grupe osi na fotografiji ujemajo z grupami osi v podatkih, pri 7303 pa ne. Vendar to število zajema tudi 6141 vozil z dvignjeno osjo (polje `raised_axles` v `metadata.hdf5` ni prazno), kjer osi preprosto ne moremo detektirati. Ostane 1162 vozil pri katerih niti rekonstrukcija, ne strojni ali ročni popravki niso pravilno določili grupe osi. To je približno 2.8% vozil, pri katerih bi lahko NM morda izboljšala detekcijo.
 
-Rezultat neposredne izbire podatkov je datoteka `vehicles_for_axles.json`, spisek videnih vozil z njihovimi atributi:
+Rezultat neposredne izbire podatkov je datoteka `nn_vehicles.json`, spisek vozil z njihovimi atributi:
 
 Format datotek je enak: spisek vnosov, kjer so v vsakem vnosu polja:
 
@@ -124,12 +126,12 @@ Format datotek je enak: spisek vnosov, kjer so v vsakem vnosu polja:
 
 - `ets_str`: Berljiv timestamp ustrezajočega event-a
 
-- `match`: Zastavica ki potrdi ujemanje skupin osi na fotografiji in v podatkih. Če je zastavica `False`, se pojavijo dodatna polja:
+- `photo_match`: Zastavica ki potrdi ujemanje skupin osi na fotografiji in v podatkih. Če je zastavica `False`, se pojavijo dodatna polja:
 
   - `axle_groups`: Skupine določene v metapodatkih
   - `raised_axles`: To polje je prisotno, ko je prisotno tudi v metapodatkih — če ima vozilo dvignjene osi. S tem lahko ločimo neujemanje zaradi napačne detekcije osi in dvignjenih osi.
 
-- `vehicles`: Dict z dvema vnosoma: `weighed` je vozilo iz direktorija `rp01` (samo SiWIM izračuni), `final` iz `rp03` (vključuje strojne in ročne popravke). V obeh so polja
+- `vehicle`: Dict z dvema vnosoma: `weighed` opisuje vozilo iz direktorija `rp01`, `final` iz `rp03`. V obeh so polja
 
   - `axle_groups`: Skupine osi
   - `axle_distance`: Spisek medosnih razdalj
@@ -139,10 +141,10 @@ Format datotek je enak: spisek vnosov, kjer so v vsakem vnosu polja:
   - `man`: Zastavica, ki pove ali je bil izveden ročni popravek
 
   V vozilu `final` sta dodatni dve polji, `distance_op`, ki ima lahko vrednosti:
-  - `nop`: Medosne razdalje se niso spremenile (40530 vozil)
-  - `mov`: Vozilu so se osi samo premaknile. To je načeloma posledica ročnega popravljanja (282 vozil)
+  - `nop`: Medosne razdalje se niso spremenile (40519 vozil)
+  - `mov`: Vozilu so se osi samo premaknile. To je načeloma posledica ročnega popravljanja (281 vozil)
   - `add`: Vozilu so se osi dodale (138 vozil)
-  - `del`: Vozilu so se osi pobrisale (548 vozil)
+  - `del`: Vozilu so se osi pobrisale (452 vozil)
 
   ter polje `weight_op`, katerega vrednost je lahko:
 
@@ -150,6 +152,64 @@ Format datotek je enak: spisek vnosov, kjer so v vsakem vnosu polja:
   - `chg`: Če so osni pritiski spremenjeni
   - `undef`: Če se je število osi spremenilo in osnih pritiskov ne moremo primerjati
 
+### Reprocesiranje event-ov
 
+Za učenje NM so potrebni signali iz katerih SiWIM konstruira osi. Žal so bili ti podatki deloma izgubljeni, deloma pa jih s starejšimi verzijami SiWIM-a niti ni bilo možno generirati.
+
+Dodatno oviro je postavljalo dejstvo, da smo za detekcijo osi uporabili signala iz dveh detektorjev osi. Opazili smo namreč, da je so včasih vrhovi precej bolj izraziti na enem, včasih na drugem. Algoritem za uporabo obeh signalov deluje tako, da se izbere dominantni detektor, s pomočjo navzkrižne korelacije določi zamik med njegovim signalom in signalom drugega detektorja, signal z drugega detektorja ustrezno premakne, ter za detekcijo uporabi povprečje obeh signalov.
+
+Žal pa zaradi prihranka prostora na disku (ki je bil 10 let nazaj precej dražji) nismo v event-e dali shraniti diagnostike za detekcijo osi.
+
+Zato smo iz starih event-ov prebrali nastavitve in z njimi ponovno procesirali event-e, tokrat z vklopljenim generiranjem diagnostik. Žal ni bilo moči reproducirati tudi tehtanja, ker smo pri kasnejših obdelavah spreminjali vplivnico, le-ta pa se takrat ni shranjevala ob spremembah. Izbira vplivnice pa ima močen vpliv na rekonstrukcijo in s sedanjo vplivnico je bilo nemogoče reproducirati staro tehtanje.
+
+### Ekstrakcija signalov in osnih pulzov iz event-ov 
+
+Naslednji korak opravi skripta `nn_axles_and_signals.py`. Vhodni podatki so:
+
+- Datoteka `nn_vehicles.json` iz prvega koraka
+- Originalni event-i za branje osnih pulzov
+- Reprocesirani event-i za branje osnih signalov
+
+Skripta za vsako izmed vozil prebere ustrezna event-a in iz njiju ekstrahira želene podatke.
+
+V izhodni datoteki `nn_axles.json` so vnosi iz `nn_vehicles.json` razširjeni s sledečimi polji:
+
+- Dict `vehicle` se razširi z vnosom `detected` za detektirana vozila (pred tehtanjem in predvsem rekonstrukcijo)
+- Vnosoma `detected` in `weighed` v prejšnjem dict-u se doda polje `axle_pulses`, dobljeno iz list `detected_vehicles` in `weighed_vehicles` iz originalnega event-a
+- Vnosu `weighed` se doda `distance_op`, z istim pomenom, kot v vnosu `final`
+
+V izhodni datoteki `nn_signals.hdf5`  pa so zbrani signali. Za vsako vozilo je kreirana grupa, katere ime je berljiv timestamp vozila, npr., `2014-03-12-14-34-07-337`. Znotraj grupe so spravljeni `numpy` array-ji:
+
+- `s111`: Prvi signal za detekcijo osi.
+- `s112 a11`: Drugi signal za detekcijo osi.
+- `11admp`: Kombinirani signal za detekcijo osi.
+- `11admp''`: Signal z odšteto envelopo. Ideja je, da se najde minimum signala `11admp`, konstruira trikotnik skozi začetno točko signala, minimum ter končno točko signala, ter ta trikotnik odšteje od signala. Rezultat je ta, da se znebimo precejšnjega dela negativne komponente signala.
+- `11avg1`: Prvo drseče povprečje signala `11admp''` z dolžino povprečenja enako 1.1&nbsp;m
+- `11avg2`: Drugo drseče povprečje signala `11admp''` z dolžino povprečenja enako 0.3&nbsp;m.
+- Razlika `11diff = 11avg1 - 11avg2`, ki je osnova za algoritem za detekcijo. 
+
+### Generiranje pulzov za končno verzijo vozil
+
+Za detektirana in tehtana vozila imamo na voljo pulze iz event-ov, za končna vozila pa žal ne. Zato jih je bilo treba generirati iz drugih podatkov.
+
+Vhodna datoteka je samo ena, `nn_axles.json` iz prejšnjega koraka, izhodna datoteka pa `nn_pulses.json`, v kateri so razširjeni vnosi. Algoritem je sledeč:
+
+- S pomočjo `difflib.SequenceMatcher` se poišče podobnost med medosnim razdaljami `weighed` in `final` vozil
+- Če se niti ena medosna razdalja ne ujema, vozilo ni kandidat za učenje in polje `eligible` se nastavi na `False`. Takšnih vozil je 161.
+- V preostalih 41229 primerih se poišče najdaljši ujemajoči se odsek medosnih razdalj. S pomočjo tega in osnih pulzov iz `weighed` se izračuna faktor skaliranja med medosnimi razdaljami in razdaljami med pulzi. Faktor je odvisen od hitrosti vzorčenja in hitrosti vozila.
+- V polje `axle_pulses` za vnos`final` v dict-u `vehicle` se najprej prepiše tiste pulze iz `weighed`, ki so v najdaljšem ujemajočem se odseku, ostale pulze pa generira s pomočjo medosnih razdalj in faktorja skaliranja.
+
+### Učenje
+
+Na tem mestu imamo za vsa primerna vozila:
+
+- Signale iz detektorjev osi
+- Osne pulze
+
+Imamo 34087 vozil za treniranje NM ter 1162 vozil na katerih lahko preverimo uspešnost. 
+
+SiWIM algoritem deluje na razliki `11diff`. Vendar je pot do tega signala že sama po sebi "obremenjena" s hevristiko, predvsem pa je potrebno določiti nekaj parametrov, ki so ključnega pomena pri detekciji osi. Morda bi bilo smiselno poskusiti kar neposredno s signalom `11admp''`, katerega generiranje skoraj nič ni odvisno od človeka.
+
+Treba je omeniti, da v metapodatkih *ni* podatka o dejanskih pravilnih medosnih razdaljah, temveč samo o pravilnih skupinah osi. Vendar je v tej fazi tudi da podatek pomemben in dober indikator delovanja NM. Število testnih vozil pa je tudi dovolj majhno, da lahko ročno pregledamo rezultate.
 
 [^1]: Pri pripravi datoteke `grp_and_fixed.hdf5`, poslane 3.12.2024, o kateri smo tudi včeraj govorili, sem pozabil na te zastavice. Bom, ko vzpostavim ML PC doma, še enkrat vse skupaj zgeneriral. Vidim, da sem tudi v `metadata.hdf` po nepotrebnem združil zastavice za ročne spremembe z zastavico `Flag_QA_Fixed`. Bom tudi to popravil, da bosta to ločena podatka.

@@ -22,13 +22,17 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 #%% Parse args and do simple initialisations
 
 parser = argparse.ArgumentParser(description="Generate a list of vehicles and some info for training ML to detect axles from signals", fromfile_prefix_chars='@', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("--data_dir", help="Data directory", default=os.path.join(SCRIPT_DIR, 'data'))
 parser.add_argument("--siwim_site", help="SiWIM site", default=r"E:\sites\original\AC_Sentvid_2012_2")
+parser.add_argument("--src", help="Input file", default="braid.nswd")
+parser.add_argument("--data_dir", help="Data directory", default=os.path.join(SCRIPT_DIR, 'data'))
+parser.add_argument("--dst", help="Output file", default="nn_vehicles.json")
+parser.add_argument("--rps", help="Replays", nargs=2, default=['rp01', 'rp03'])
 
 try:
     __IPYTHON__ # noqa
     if True and getpass.getuser() == 'jank':
-        args = parser.parse_args(r"".split())
+        args = parser.parse_args(r"--src four.nswd --dst nn_vehicles-test.json".split())
+        args = parser.parse_args()
     else:
         raise Exception
 except:
@@ -55,11 +59,10 @@ ts_max = max(x['vehicle_timestamp'] for x in rvs_loaded)
 
 nswds = {}
 vehicle2event = {}
-rps = ['rp01', 'rp03']
 
-for rp in rps:
+for rp in args.rps:
     print("Loading", rp)
-    nswd = Vehicle.from_txt_files(os.path.join(args.siwim_site, rp, 'cf', 'braid.nswd'))
+    nswd = Vehicle.from_txt_files(os.path.join(args.siwim_site, rp, 'cf', args.src))
     nswds[rp] = {x.timestamp: x for x in nswd if x.timestamp >= ts_min and x.timestamp <= ts_max and not x.lane}
     vehicle2event.update({x.timestamp: x.event_timestamp for x in nswds[rp].values()})
     del nswd
@@ -67,22 +70,21 @@ gc.collect()
     
 #%% Get intersection of timestamps and remove multiple vehicles
 
-for rp in rps:
+for rp in args.rps:
     tss = {x for x in nswds[rp]}
+    etss = {}
+    for ts in tss:
+        try:
+            etss[vehicle2event[ts]] += 1
+        except:
+            etss[vehicle2event[ts]] = 1
+    tss = {x for x in sorted(tss) if etss[vehicle2event[x]] == 1}
     try:
         all_tss &= tss # noqa
-    except:
+    except NameError:
         all_tss = tss
 
-tsscount = len(all_tss)
-etss = {}
-for ts in all_tss:
-    try:
-        etss[vehicle2event[ts]] += 1
-    except:
-        etss[vehicle2event[ts]] = 1
-tss = [x for x in sorted(all_tss) if etss[vehicle2event[x]] == 1]
-print(f"All tss: {tsscount}, single tss: {len(tss)}")
+tss = list(sorted(all_tss))
 
 #%% Collect metadata
 
@@ -90,7 +92,7 @@ print("Loading metadata.hdf5")
 metadatafile = os.path.join(SCRIPT_DIR, "data", "metadata.hdf5")
 
 metadata = {}
-counter = {'total': len(tss), 'has_metadata': 0, 'unseen': 0, 'seen': 0, 'match': 0, 'nonmatch': 0, 'raised': 0, 'nonraised': 0}
+counter = {'total': len(tss), 'has_metadata': 0, 'unseen': 0, 'seen': 0, 'photo_match': 0, 'photo_non_match': 0, 'raised': 0, 'nonraised': 0}
 
 progress = Progress("Processing {} items from metadata... {{}}% ".format(len(tss)), len(tss))
 for ts in tss:
@@ -108,7 +110,7 @@ for ts in tss:
         try:
             data['axle_groups']
             metadata[ts].update({'photo_match': False, 'axle_groups': data['axle_groups']})
-            counter['nonmatch'] += 1
+            counter['photo_non_match'] += 1
             try:
                 metadata[ts]['raised_axles'] = data['raised_axles']
                 counter['raised'] += 1
@@ -116,7 +118,7 @@ for ts in tss:
                 counter['nonraised'] += 1
         except:
             metadata[ts]['photo_match'] = True
-            counter['match'] += 1
+            counter['photo_match'] += 1
 
 print("Metadata stats:", counter)
         
@@ -142,15 +144,15 @@ for ts, data in sorted(metadata.items()):
                            'rcn': nswds[rp][ts].vehiclereconstructedflag(),
                            'fix': nswds[rp][ts].qafixedflag(),
                            'man': nswds[rp][ts].manuallychangedflags()}
-                       for (x, rp) in zip(['weighed', 'final'], rps)}
+                       for (x, rp) in zip(['weighed', 'final'], args.rps)}
 
     # Get distance op
-    cmp = compare(len(nswds[rps[0]][ts].axle_distance), len(nswds[rps[1]][ts].axle_distance))
+    cmp = compare(len(nswds[args.rps[0]][ts].axle_distance), len(nswds[args.rps[1]][ts].axle_distance))
     if not cmp:
         try:
-            eq = (nswds[rps[0]][ts].axle_distance == nswds[rps[1]][ts].axle_distance).all()
+            eq = (nswds[args.rps[0]][ts].axle_distance == nswds[args.rps[1]][ts].axle_distance).all()
         except AttributeError:
-            eq = nswds[rps[0]][ts].axle_distance == nswds[rps[1]][ts].axle_distance
+            eq = nswds[args.rps[0]][ts].axle_distance == nswds[args.rps[1]][ts].axle_distance
         distance_op = 'nop' if eq else 'mov'
     else:
         distance_op = 'add' if cmp < 0 else 'del'
@@ -159,7 +161,7 @@ for ts, data in sorted(metadata.items()):
 
     # Perhaps get weight op
     if distance_op in ['nop', 'mov']:
-        item['vehicle']['final']['weight_op'] = 'nop' if [x.cw for x in nswds[rps[0]][ts].axle] == [x.cw for x in nswds[rps[1]][ts].axle] else 'chg'
+        item['vehicle']['final']['weight_op'] = 'nop' if [x.cw for x in nswds[args.rps[0]][ts].axle] == [x.cw for x in nswds[args.rps[1]][ts].axle] else 'chg'
     else:
         item['vehicle']['final']['weight_op'] = 'undef'
     
@@ -170,5 +172,5 @@ print(f"total: {sum([x for x in opcount.values()])}, {opcount}")
 
 #%% Save data
 
-with open(os.path.join(SCRIPT_DIR, 'data', "nn_vehicles.json"), 'w') as f:
+with open(os.path.join(SCRIPT_DIR, 'data', args.dst), 'w') as f:
     json.dump(items, f, indent=2)

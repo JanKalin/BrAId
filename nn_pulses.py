@@ -24,7 +24,7 @@ parser.add_argument("--dst", help="Destination file", default="nn_pulses.json")
 try:
     __IPYTHON__ # noqa
     if True and getpass.getuser() == 'jank':
-        args = parser.parse_args(r"--src nn_axles-some.json --dst nn_pulses-some.json".split())
+        args = parser.parse_args(r"--src nn_axles.json --dst nn_pulses.json".split())
     else:
         raise Exception
 except:
@@ -38,7 +38,7 @@ with open(os.path.join(args.data_dir, args.src)) as f:
 output_vehicles = []
 eligible = {True: 0, False: 0}
 
-for item in [input_vehicles[2]]:
+for item in input_vehicles:
     # Short names
     dist_w = item['vehicle']['weighed']['axle_distance']
     pulse_w = item['vehicle']['weighed']['axle_pulses']
@@ -73,8 +73,16 @@ for item in [input_vehicles[2]]:
         pulse_f[idx] = pulse_f[idx - 1] + diff_f[idx-1]
     for idx in range(longest.b, -1, -1):
         pulse_f[idx] = pulse_f[idx + 1] - diff_f[idx]
+    item['vehicle']['final']['axle_pulses'] = pulse_f
     
-print(eligible)
+    # Done
+    output_vehicles.append(item)
+    
+print(f"eligible: {eligible}")
 
 with open(os.path.join(args.data_dir, args.dst), 'w') as f:
     json.dump(output_vehicles, f, indent=2)
+
+with open(os.path.join(args.data_dir, "debug.json"), 'w') as f:
+    json.dump([x for x in output_vehicles if x['vehicle']['final']['distance_op'] != 'nop'], f, indent=2)
+    
