@@ -19,6 +19,7 @@ A collection of Python scripts to prepare and tag data from SiWIM B-WIM systems.
 - `label_braid_photos.py`: The main script used to manually scan photos and `nswd` files and writes tags for various detection and photography errors into `metadata.hdf5` file
 - `locallib.py`: Collection of utility functions for the other scripts
 - `main_window_ui.py`: PyQt5 form generated with `pyuic5` from definition in directory `ui`
+- `nn_*.py`: Axle pulse-related scripts. The documentation is in  [axles.pdf](doc\axles\axles.pdf).
 - `preprocess.py`: Removes all non-lane 1 vehicles and changes tag `bus` to `truck` for all "busses"
   with groups other than 11, 12, 111 and 121
 - `read_one_photo.py`: Proto-script for `label_braid_photos.py`
