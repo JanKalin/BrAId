@@ -98,7 +98,7 @@ Označena vozila lahko razdelimo v množici pravilno in nepravilno detektiranih 
 
 Za vozila iz množice $\mathbb N$ pa bi bilo treba rekonstruirati $q'''$. Za to pa pride v poštev Andrejeva ideja z uporabo, npr., prve medosne razdalje kot referenco. Verjetno nikoli (ali pa vsaj v samo izjemno majhnem deležu primerov) namreč niso spremenjene prav vse medosne razdalje. Med medosnimi razdaljami $x$ in $x'''$ bi se poiskalo pare enakih medosnih razdalj in s pomočjo teh (ali verjetno najdaljše ustrezajoče izmed teh) določilo skalo signala $q$. S tem in z $x'''$ pa so dani vsi podatki, s katerimi bi se dalo rekonstruirati signal $q'''$, ki bi bil, poleg signala $s$, vhod v NM.
 
-Tako imamo, PMSM, vse potrebne podatke, da bi iz signala lahko dobili pulze za določanje pozicij osi in s tem za boljše tehtanje. V naslednjih razdelkih so opisani koraki do nabora podatkov, ki so primerni za treniranje NM. Zaradi preprostosti in ločevanja dolgotrajnih postopkov so uporabljene tri Python skripte.
+Tako imamo, PMSM, vse potrebne podatke, da bi iz signala lahko dobili pulze za določanje pozicij osi in s tem za boljše tehtanje. V naslednjih razdelkih so opisani koraki do nabora podatkov, ki so primerni za treniranje NM. Zaradi preprostosti in ločevanja dolgotrajnih postopkov so uporabljene štiri Python skripte.
 
 ### Izbira vozil
 
@@ -125,6 +125,8 @@ Format datotek je enak: spisek vnosov, kjer so v vsakem vnosu polja:
 - `ets`: Timestamp ustrezajočega event-a
 
 - `ets_str`: Berljiv timestamp ustrezajočega event-a
+
+- `v`: hitrost vozila v m/s. 
 
 - `photo_match`: Zastavica ki potrdi ujemanje skupin osi na fotografiji in v `rp03` podatkih. Če je zastavica `False`, se pojavijo dodatna polja:
 
@@ -190,14 +192,36 @@ V izhodni datoteki `nn_signals.hdf5`  pa so zbrani signali. Za vsako vozilo je k
 
 ### Generiranje pulzov za končno verzijo vozil
 
-Za detektirana in tehtana vozila imamo na voljo pulze iz event-ov, za končna vozila pa žal ne. Zato jih je bilo treba generirati iz drugih podatkov.
-
-Vhodna datoteka za skripto `nn_axles.py` je samo ena, `nn_axles.json` iz prejšnjega koraka, izhodna datoteka pa `nn_pulses.json`, v kateri so razširjeni vnosi. Algoritem je sledeč:
+Za detektirana in tehtana vozila imamo na voljo pulze iz event-ov, za končna vozila pa žal ne. Zato jih je bilo treba generirati iz drugih podatkov s pomočjo skripte `nn_pulses.py`. Vhodna datoteka je samo ena, `nn_axles.json` iz prejšnjega koraka, izhodna datoteka pa `nn_pulses.json`, v kateri so razširjeni vnosi. Algoritem je sledeč:
 
 - S pomočjo `difflib.SequenceMatcher` se poišče podobnost med medosnim razdaljami `weighed` in `final` vozil
 - Če se niti ena medosna razdalja ne ujema, vozilo ni kandidat za učenje in polje `eligible` se nastavi na `False`. Takšnih vozil je 161.
 - V preostalih 41229 primerih se poišče najdaljši ujemajoči se odsek medosnih razdalj. S pomočjo tega in osnih pulzov iz `weighed` se izračuna faktor skaliranja med medosnimi razdaljami ter razdaljami med pulzi. Faktor je odvisen od hitrosti vzorčenja in hitrosti vozila. Ta faktor je shranjen pod ključem `scale`.
 - V polje `axle_pulses` za vnos`final` v dict-u `vehicle` se najprej prepiše tiste pulze iz `weighed`, ki so v najdaljšem ujemajočem se odseku, ostale pulze pa generira s pomočjo medosnih razdalj in faktorja skaliranja.
+
+### Normiranje in poravnava signalov in pulzov
+
+V dosedaj shranjenih datotekah je neodvisna spremenljivka čas, tako, kot v originalnih SiWIM podatkih. Za strojno učenje to ni primerno, saj so pri istih medosnih razdaljah signali različno dolgi. Prav tako se med seboj razlikujejo amplitude signalov. 
+
+Da bi olajšali strojno učenje, skripta `nn_normalise.py`  prebere datoteki `nn_signals.hdf5` in `nn_pulses.json` in naredi sledeče:
+
+- Neodvisna spremenljivka se spremeni iz časa v razdaljo s pomočjo hitrosti vozila:
+  - Vse signale v `nn_signals.hdf` se ponovno vzorčijo z $\Delta x =$&nbsp;5&nbsp;cm. Pri hitrostih okoli 25&nbsp;m/s in vzorčenju 512&nbsp;Hz to pomeni približno ohranjanje števila vzorcev. Pretvorbeni faktor se v `.json` zapiše kot `dx/dt`
+  - Vrednosti pulzov v `.json` datotekah se pomnožijo tem faktorjem
+- Ponovno vzorčene signale se normira tako, da je maksimum enak 1
+- Podatkom se odreže odvečne dele signala pred in za uporabnim delom signala s sledečim postopkom:
+  - Najprej se poišče interval na katerem signal pozitiven:
+    1. Določi se interval $[p, q]$, kjer vrednost signala `admp11`, prvič naraste nad 0.2 (t.j., 25% od maksimuma normiranega signala) in zadnjič pade pod 0.25.
+    2. Interval se razširi levo in desno do prvega negativnega vzorca v obeh smereh.
+    3. Interval se razširi v obe smeri za 8&nbsp;m, kar je dolžina polovice vplivnice.
+  - Od vseh signalov se odreže vse vzorce zunaj tako dobljenega intervala, pulze v `.json` datotekah pa se ustrezno premakne - odšteje $p$. Hkrati se ta vrednost v `.json` datoteko vpiše pod `Dx`. Negativna vrednost pomeni, da se signal premakne k manjšim pozicijam, enota pa je indeks vzorca. Za dejanski zamik je potrebno to pomnožiti z $\Delta x$.
+
+Pri nekaterih signalih je prišlo do ene izmed dveh napak:
+
+- V koraku 2 ni bilo moč najti prehoda pod 0. Takšnih je bilo 50 dogodkov.
+- Približna lokacija prvega pulza mora biti okoli 9.3&nbsp;m: vplivnica se začne 8&nbsp;m pred dejanskim začetkom mostu, prvi senzor pa je 1.3&nbsp;m po začetku mostu. Pri nekaj signalih pa se je lokacija prvega pulza precej razlikovala od tega. Zato je bila lokacija prvega pulza omejena na najmanj 8&nbsp;m in največ 10.6&nbsp;m od začetka signala. Takšnih je bilo 96 dogodkov
+
+Skupaj 146 dogodkov je bilo izločenih iz končne množice, v kateri ostane 41083 dogodkov. Podatki so shranjeni v `nn_normalised_signals.hdf5` in `nn_normalised_pulses.json`.
 
 ### Učenje
 
@@ -206,7 +230,11 @@ Na tem mestu imamo za vsa primerna vozila:
 - Signale iz detektorjev osi
 - Osne pulze
 
-Podatki so shranjeni v BrAId pCloud-u v poddirektoriju `10_podatki/Axles`. Imamo 34087 vozil za treniranje NM ter 1162 vozil na katerih lahko preverimo uspešnost. 
+Podatki so shranjeni v BrAId pCloud-u v poddirektoriju `10_podatki/Axles`. Skupaj imamo 41083 vozil, od teh:
+
+- 33843 vozil s pravilno detektiranimi osmi
+- 6071 z napačno detektiranimi osmi vendar z dvignjenimi osmi
+- 1169 z napačno detektiranimi osmi brez dvignjenih osi
 
 #### Izbira signala
 

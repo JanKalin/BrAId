@@ -37,7 +37,7 @@ parser.add_argument("--siwim_vehicle_fad_index", help="SiWIM index for data with
 try:
     __IPYTHON__ # noqa
     if True and getpass.getuser() == 'jank':
-        args = parser.parse_args(r"--src nn_vehicles-some.json --dst nn_axles-some.json --plot --sig delete_me.hdf5".split())
+        args = parser.parse_args(r"--sig NONE".split())
     else:
         raise Exception
 except:

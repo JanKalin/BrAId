@@ -23,8 +23,8 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 parser = argparse.ArgumentParser(description="Generate a list of vehicles and some info for training ML to detect axles from signals", fromfile_prefix_chars='@', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--siwim_site", help="SiWIM site", default=r"E:\sites\original\AC_Sentvid_2012_2")
-parser.add_argument("--src", help="Input file", default="braid.nswd")
 parser.add_argument("--data_dir", help="Data directory", default=os.path.join(SCRIPT_DIR, 'data'))
+parser.add_argument("--src", help="Input file", default="braid.nswd")
 parser.add_argument("--dst", help="Output file", default="nn_vehicles.json")
 parser.add_argument("--rps", help="Replays", nargs=2, default=['rp01', 'rp03'])
 
@@ -137,7 +137,8 @@ for ts, data in sorted(metadata.items()):
     
     # Create and copy basic data
     item = {'ts': ts.timestamp(), 'ts_str': datetime2ts(ts),
-            'ets': vehicle2event[ts].timestamp(), 'ets_str': datetime2ts(vehicle2event[ts])}
+            'ets': vehicle2event[ts].timestamp(), 'ets_str': datetime2ts(vehicle2event[ts]),
+            'v': nswds[args.rps[0]][ts].v()}
     item.update(data)
     item['vehicle'] = {x: {'axle_groups': nswds[rp][ts].groups2str(),
                            'axle_distance': list(nswds[rp][ts].axle_distance),
