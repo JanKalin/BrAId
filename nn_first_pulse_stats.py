@@ -56,4 +56,4 @@ print(f"{len(items)} all vehicles, {ok} ok training vehicles, {raised} not ok wi
 
 #%% Plot a histogram
 
-plt.hist(firsts)
+plt.hist(firsts, bins=50, log=True)

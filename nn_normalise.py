@@ -45,7 +45,7 @@ parser.add_argument("--debug", help="Various debugging", action='store_true');
 try:
     __IPYTHON__ # noqa
     if True and getpass.getuser() == 'jank':
-        args = parser.parse_args(r"--plot 1 --admp --legend --dst-hdf5 NONE --dst-json NONE --ets 2014-03-20-06-40-36-943".split())
+        args = parser.parse_args(r"--plot 1 --admp --legend --dst-hdf5 NONE --dst-json NONE --items 0 10".split())
     else:
         raise Exception
 except:
@@ -75,7 +75,7 @@ if args.ets:
 
 # Perhaps prepare a plot 
 if args.plot:
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize = (6, 6), sharex=True)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize = (8, 6), sharex=True)
     
 # Init file and list of items
 if args.dst_hdf5 != "NONE":
