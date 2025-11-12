@@ -19,6 +19,8 @@ sys.path.append(os.path.join(os.path.dirname(SCRIPT_DIR), '..', 'siwim-pi'))
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+raise SystemExit("Do not run this script indiscriminately or you will overwrite data!")
+
 #%% Parse args and do simple initialisations
 
 parser = argparse.ArgumentParser(description="Normalises and shifs signals", fromfile_prefix_chars='@', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
