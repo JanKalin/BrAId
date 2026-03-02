@@ -58,6 +58,7 @@ try:
     __IPYTHON__ #noqa
     args = parser.parse_args((r"--src F:\sites\original\AC_Sentvid_2012_2\rp43\weigh\dists_lane1 "
                               r"--xml F:\sites\original\AC_Sentvid_2012_2\rp42\cf\selected.xml "
+                              f"--saveplot {os.path.join(SCRIPT_DIR, 'GVW_vs_pos.png')} "
                               r"--nch 12 --noch 8 --lane 1 --mpf").split())
 except:
     args = parser.parse_args()
@@ -300,3 +301,15 @@ for vehicle in vehicles:
         locs.append(loc)
     except KeyError:
         raise
+        
+#%% 
+
+fig, ax = plt.subplots()
+plt.plot(locs, gvws, '.', markersize=0.25)
+plt.xlim(4.8, 6)
+plt.ylim(10, 50)
+plt.xlabel("y/m")
+plt.ylabel("GVW/t")
+plt.title("GVW vs lateral position")
+plt.gcf().set_size_inches(graphsize[0], graphsize[1])
+plt.gcf().savefig(args.saveplot, dpi=args.dpi, bbox_inches='tight', pad_inches=0)
