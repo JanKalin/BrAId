@@ -59,7 +59,7 @@ try:
     args = parser.parse_args((r"--src F:\sites\original\AC_Sentvid_2012_2\rp43\weigh\dists_lane1 "
                               r"--xml F:\sites\original\AC_Sentvid_2012_2\rp42\cf\selected.xml "
                               f"--saveplot {os.path.join(SCRIPT_DIR, 'GVW_vs_pos.png')} "
-                              r"--nch 12 --noch 8 --lane 1 --mpf").split())
+                              r"--nch 12 --noch 8 --lane 1 --mpf --sizein 7 4").split())
 except:
     args = parser.parse_args()
 
@@ -290,6 +290,7 @@ plt.plot()
 #%% And plot the vehicle GVW vs transverse position
 
 gvws = []
+w1s = []
 locs = []
 
 for vehicle in vehicles:
@@ -297,19 +298,27 @@ for vehicle in vehicles:
         idx_val = tmp.index.get_indexer([vehicle.timestamp], method='nearest')[0]
         loc = tmp.iloc[idx_val]['m']
         gvw = vehicle.gvw()/9.81
+        w1 = vehicle.axle[0].cw/9.81
         gvws.append(gvw)
+        w1s.append(w1)
         locs.append(loc)
     except KeyError:
         raise
         
 #%% 
 
+m, b = np.polyfit(locs, w1s, 1)
+
 fig, ax = plt.subplots()
-plt.plot(locs, gvws, '.', markersize=0.25)
+plt.plot(locs, gvws, '.', markersize=0.25, label='GVW')
+plt.plot(locs, w1s, '.', markersize=0.25, label='W1')
+lims = [np.min(locs), np.max(locs)]
+plt.plot(lims, [m*x + b for x in lims], ':k', label=f"slope = {m:.2f}t/m = {m/np.mean(w1s)*100:.0f}%/m")
 plt.xlim(4.8, 6)
-plt.ylim(10, 50)
+plt.ylim(2.5, 50)
 plt.xlabel("y/m")
-plt.ylabel("GVW/t")
-plt.title("GVW vs lateral position")
+plt.ylabel("GVW/t, W1/t")
+plt.title("GVW and W1 vs lateral position")
+plt.legend()
 plt.gcf().set_size_inches(graphsize[0], graphsize[1])
 plt.gcf().savefig(args.saveplot, dpi=args.dpi, bbox_inches='tight', pad_inches=0)
