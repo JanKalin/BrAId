@@ -1,5 +1,6 @@
 #%% Import stuff
 
+import datetime
 import json
 import os
 import sys
@@ -23,11 +24,13 @@ with open(os.path.join(SCRIPT_DIR, 'data', 'nn_normalised_pulses.json')) as f:
     pulses = json.load(f)
     
 metafile = os.path.join(SCRIPT_DIR, 'data', 'metadata.hdf5')
-    
+
 #%% Get photo names and iterate over them
 
 srcdir = os.path.join(SCRIPT_DIR, 'nn_photos', 'rename', 'src')
 dstdir = os.path.join(SCRIPT_DIR, 'nn_photos', 'rename', 'dst')
+
+stages = ['detected', 'weighed', 'final']
 
 srcfiles = sorted(os.listdir(srcdir))
 
@@ -40,8 +43,7 @@ for srcfile in srcfiles:
     entry = [x for x in pulses if x['ts'] == rv['vehicle_timestamp']][0]
     
     # Gather data
-    detected = entry['vehicle']['detected']['axle_groups']
-    weighed = entry['vehicle']['weighed']['axle_groups']
+    WIM_groups = {stage: entry['vehicle'][stage]['axle_groups'] for stage in stages}
     
     # Load image
     image = Image.open(os.path.join(srcdir, srcfile))
@@ -51,15 +53,36 @@ for srcfile in srcfiles:
     # Write groups
     AI_status = status[-1]
     WIM_status = ''
-    for x, text in [(330, detected), (430, weighed)]:
+    for x, stage in zip((330, 430, 530), stages):
         position = (x, 110)
-        if text == axle_groups:
-            text_color = (0, 0xFF//4*3, 0)
-            WIM_status += 'T'
+        if WIM_groups[stage] == axle_groups:
+            if stage != 'final':
+                text_color = (0, 0xFF//4*3, 0)
+                WIM_status += 'T'
+            else:
+                try:
+                    man = entry['vehicle'][stage]['man']
+                except:
+                    man = False
+                try:
+                    fix = entry['vehicle'][stage]['fix']
+                except:
+                    fix = False
+                if WIM_groups[stage] == WIM_groups['weighed']:
+                    text_color = (0, 0xFF//4*3, 0)
+                    WIM_status += 'T'
+                elif man:
+                    text_color = (0, 0, 0xFF)
+                    WIM_status += 'M'
+                elif fix:
+                    text_color = (0, 0xFF//4*3, 0)
+                    WIM_status += 'H'
+                else:
+                    raise
         else:
             text_color = (0xFF, 0, 0)
             WIM_status += 'F'
-        draw.text(position, text, fill=text_color, font=font)
+        draw.text(position, WIM_groups[stage], fill=text_color, font=font)
     
     # Save it
     status = f"{WIM_status}_{AI_status}"
