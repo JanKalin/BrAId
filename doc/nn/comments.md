@@ -1,5 +1,11 @@
 # Pregled AI rezultatov detekcije osi iz časovnih vrst
 
+Jan Kalin <jan.kalin@zag.si>
+
+- v1.0, 6.3.2026
+
+## Uvod
+
 Ta dokument je osnovan na pregledu rezultatov obdelave datotek dobljenih s postopkom opisanim v  [axles.pdf](..\axles\axles.pdf).
 
 Pregledanih je bilo 612 vozil iz testne možice, kjer se bodisi SiWIM ali AI rezultat ni ujemal z dejanskimi osmi. Rezultati so ločeni v več skupin, označenih s sledečo kodo `<D><R><P>_<A>`, pri čemer so:
@@ -32,13 +38,13 @@ kar je morda povzročilo napačno detekcijo AI, na primer:
 
 
 
-![223271_1211_FFM_F](..\..\nn_photos\rename\dst\FFM_F\223271_1211_FFM_F.png)
+![223271_1211_FFM_F](223271_1211_FFM_F.png)
 
 To bi se dalo rešiti z reprocesiranjem signalov, vendar je vprašanje, ali se splača.
 
 ### Ročne napake
 
-V nekaterih primerih sta bili narejena napaka tako pri ročnem popravljanju, kot pri pregledovanju slik, na primer: ![39004_1211_FFM_F](..\..\nn_photos\rename\dst\FFM_F\39004_1211_FFM_F.png)
+V nekaterih primerih sta bili narejena napaka tako pri ročnem popravljanju, kot pri pregledovanju slik, na primer: ![39004_1211_FFM_F](39004_1211_FFM_F.png)
 
 kjer je tovornjak imel dvignjeno tretjo os, druga os je bila ročno "popravljena" v dvojno, pri pregledovanju pa tega nismo opazili.
 
@@ -48,7 +54,7 @@ V množici **TFH_F** je pri vseh vozilih prišlo do napake rekonstrukcije. Prav 
 
 Hevristični popravki so drugo os v skupini zavrgli, niso pa premaknili prve osi nazaj na prej detektirano mesto. S tem se AI generirane osi niso ujemale s SiWIM. V resnici pa, če pogledaš signale, je AI odlično določila pozicijo osi, na primer:
 
-![7772_11_TFH_F](..\..\nn_photos\rename\dst\TFH_F\7772_11_TFH_F.png)
+![7772_11_TFH_F](7772_11_TFH_F.png)
 
 ## Posamezne množice
 
@@ -91,6 +97,8 @@ Pri tej množici je prišlo do dveh tipičnih napak. AI je rad izgubljal osi pri
 
 ## Povzetek
 
+### Točnost
+
 Vseh vozil, ki so bila označena kot da je AI naredil napako, je 415. Od tega je 10 krat haluciniral (2%) in 156 krat izgubil os (38%). 
 
 Če pa upoštevamo:
@@ -100,3 +108,9 @@ Vseh vozil, ki so bila označena kot da je AI naredil napako, je 415. Od tega je
 - Ignoriramo napake kjer je prišlo do rezanja signala
 
 je od 415 vozil 279 pravzaprav pravilnih. Se pravi, od 10153 vozil je bilo napačnih 136, kar ustreza 98.7% točnosti.
+
+### Ground truth
+
+Pri nemalo vozili se je izkazalo, da je bodisi SiWIM, bodisi ročni popravki napačno popravili vozila. Hkrati pri pregledovanju z LBP nismo pravilno označili vseh vozil.
+
+V bodočnosti je treba še več pozornosti nameniti *pravilnem* pregledovanju in označevanju fotografij in vozil, saj smo skoraj v vsaki fazi kasnejšega preverjanja našli napake.
