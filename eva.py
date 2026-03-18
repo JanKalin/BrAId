@@ -13,14 +13,15 @@ import numpy as np
 import pandas as pd
 from prettytable import PrettyTable
 from scipy.optimize import curve_fit
+from sklearn.linear_model import TheilSenRegressor
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 try:
     __IPYTHON__ #noqa
-    addpath = os.path.join(os.path.split(os.path.dirname(SCRIPT_DIR))[0], "siwim-pi")
+    addpath = os.path.join(os.path.dirname(SCRIPT_DIR), "siwim-pi")
     sys.path.append(addpath)
 except:
-    addpath = os.path.join(os.path.split(os.path.dirname(SCRIPT_DIR))[0], "siwim-pi")
+    addpath = os.path.join(os.path.dirname(SCRIPT_DIR), "siwim-pi")
     sys.path.append(addpath)
 
 from swm.vehicle import Vehicle
@@ -58,7 +59,7 @@ try:
     __IPYTHON__ #noqa
     args = parser.parse_args((r"--src F:\sites\original\AC_Sentvid_2012_2\rp43\weigh\dists_lane1 "
                               r"--xml F:\sites\original\AC_Sentvid_2012_2\rp42\cf\selected.xml "
-                              f"--saveplot {os.path.join(SCRIPT_DIR, 'GVW_vs_pos.png')} "
+                              f"--saveplot {os.path.join(SCRIPT_DIR, 'pos')} "
                               r"--nch 12 --noch 8 --lane 1 --mpf --sizein 7 4").split())
 except:
     args = parser.parse_args()
@@ -287,38 +288,87 @@ ax.legend([f"$\\bar{{\\beta_3}}={mean:.2f}$, $\\tilde{{\\beta_3}}={median:.2f}$"
 ax.set_title("All channels" if not noch else f"Without channel {noch}")
 plt.plot()
 
-#%% And plot the vehicle GVW vs transverse position
+#%% Get GVW and W1 for vehicles and make a new df
 
-gvws = []
-w1s = []
-locs = []
+data = pd.DataFrame(index=range(len(vehicles)), columns=['loc', 'gvw', 'w1'], dtype=float)
 
-for vehicle in vehicles:
+for idx, vehicle in enumerate(vehicles):
     try:
         idx_val = tmp.index.get_indexer([vehicle.timestamp], method='nearest')[0]
-        loc = tmp.iloc[idx_val]['m']
-        gvw = vehicle.gvw()/9.81
-        w1 = vehicle.axle[0].cw/9.81
-        gvws.append(gvw)
-        w1s.append(w1)
-        locs.append(loc)
+        data.loc[idx, 'loc'] = tmp.iloc[idx_val]['m']
+        data.loc[idx, 'gvw'] = vehicle.gvw()/9.81
+        data.loc[idx, 'w1'] = vehicle.axle[0].cw/9.81
     except KeyError:
         raise
         
-#%% 
 
-m, b = np.polyfit(locs, w1s, 1)
+#%%
+
+ts = False
+GVW_lim = 32.5
+D_loc = 1.00
+D_locs = [-np.inf, data['loc'].mean() - D_loc/2, data['loc'].mean() + D_loc/2, np.inf]
 
 fig, ax = plt.subplots()
-plt.plot(locs, gvws, '.', markersize=0.25, label='GVW')
-plt.plot(locs, w1s, '.', markersize=0.25, label='W1')
-lims = [np.min(locs), np.max(locs)]
-plt.plot(lims, [m*x + b for x in lims], ':k', label=f"slope = {m:.2f}t/m = {m/np.mean(w1s)*100:.0f}%/m")
-plt.xlim(4.8, 6)
+data['gvw'].hist(bins=40, ax=ax)
+ax.axvline(GVW_lim, linestyle=":", color='k')
+plt.xlim(10, 55)
+fig.savefig(f"{args.saveplot}-GVW_hist-{GVW_lim}t.png", dpi=args.dpi, bbox_inches='tight', pad_inches=0)
+
+fig, ax = plt.subplots()
+ax.xaxis.set_major_locator(MultipleLocator(0.5))
+ax.xaxis.set_minor_locator(MultipleLocator(0.5))
+ax.minorticks_on()
+plt.xlim(4.4, 6.4)
 plt.ylim(2.5, 50)
+plt.plot(data['loc'], data['gvw'], '.', markersize=0.25, label='GVW')
+xlo, xhi = ax.get_xlim()
+ylo, yhi = ax.get_ylim()
+
+for GVW_lims in zip([-np.inf, GVW_lim], [GVW_lim, np.inf]):
+    GVWs = data.loc[(data['gvw'] >= GVW_lims[0]) &  (data['gvw'] <= GVW_lims[1])]
+    slcs = [GVWs.loc[(data['loc'] > a) & (data['loc'] <= b)]['gvw'].describe()
+            for (a, b) in zip(D_locs[:-1], D_locs[1:])]
+    N = [len(GVWs.loc[(data['loc'] > a) & (data['loc'] <= b)]['gvw'])
+            for (a, b) in zip(D_locs[:-1], D_locs[1:])]
+    
+    for idx, ((mean, std), (xmin, xmax)) in enumerate(zip([(x['mean'], x['std']) for x in slcs], zip(D_locs[:-1], D_locs[1:]))):
+        if xmin == -np.inf:
+            xmin = xlo
+        if xmax == np.inf:
+            xmax = xhi
+        print(xmin, xmax)
+        plt.hlines(y=mean, xmin=xmin, xmax=xmax, linewidth=0.75, color='r')
+        plt.text((xmin+xmax)/2, mean - 0.25, f"N={N[idx]}: {mean:.1f}t={mean/GVWs['gvw'].mean()*100:.1f}%", va='top', ha='center', color='r')
+        
+    if ts:
+        model = TheilSenRegressor()
+        model.fit(GVWs[['loc']], GVWs['gvw'])
+        m = model.coef_[0]
+        b = model.intercept_
+    else:
+        m, b = np.polyfit(GVWs['loc'], GVWs['gvw'], 1)
+    plt.plot([xlo, xhi], [m*x + b for x in [xlo, xhi]], ':m')
+    plt.text((xlo+xhi)/2, m*(xlo+xhi)/2 + b + 0.75, f"slope = {m:.1f}t/m = {m/np.mean(GVWs['gvw'])*100:.0f}%/m", ha='center', va='bottom', color='m')
+
+for GVW_limm in GVW_lims:
+    plt.axhline(GVW_limm, linestyle=':', linewidth=0.5, color='k')
+    plt.text((xlo+xhi)/2, GVW_limm, f"{GVW_limm}t", va='top', ha='center')
+for D_locc in D_locs:
+    plt.axvline(D_locc, linestyle='--', linewidth=0.5, color='k')
+ax.annotate("", xy=(D_locs[1], ylo + 1), xytext=(D_locs[2], ylo + 1),
+            arrowprops=dict(arrowstyle="<->", color="k", lw=1.5, shrinkA=0, shrinkB=0))
+plt.text((D_locs[1] + D_locs[2])/2, ylo + 1, f"{D_loc:.2f}m", va='bottom', ha='center')
+
+plt.plot(data['loc'], data['w1'], '.', markersize=0.25, label='W1')
+m, b = np.polyfit(data['loc'], data['w1'], 1)
+plt.plot([xlo, xhi], [m*x + b for x in [xlo, xhi]], ':k')
+plt.text((xlo+xhi)/2, 9, f"slope = {m:.1f}t/m = {m/np.mean(data['w1'])*100:.0f}%/m", ha='center')
+
 plt.xlabel("y/m")
 plt.ylabel("GVW/t, W1/t")
 plt.title("GVW and W1 vs lateral position")
 plt.legend()
 plt.gcf().set_size_inches(graphsize[0], graphsize[1])
-plt.gcf().savefig(args.saveplot, dpi=args.dpi, bbox_inches='tight', pad_inches=0)
+plt.gcf().savefig(f"{args.saveplot}-GVW_vs_pos-{GVW_lim}t-{D_loc:.2f}m.png", dpi=args.dpi, bbox_inches='tight', pad_inches=0)
+
