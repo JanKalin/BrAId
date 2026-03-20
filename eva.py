@@ -60,7 +60,7 @@ try:
     args = parser.parse_args((r"--src F:\sites\original\AC_Sentvid_2012_2\rp43\weigh\dists_lane1 "
                               r"--xml F:\sites\original\AC_Sentvid_2012_2\rp42\cf\selected.xml "
                               f"--saveplot {os.path.join(SCRIPT_DIR, 'pos')} "
-                              r"--nch 12 --noch 8 --lane 1 --mpf --sizein 7 4").split())
+                              r"--nch 12 --noch 8 --lane 1 --mpf --sizein 10 8").split())
 except:
     args = parser.parse_args()
 
@@ -306,7 +306,7 @@ for idx, vehicle in enumerate(vehicles):
 
 ts = False
 GVW_lim = 32.5
-D_loc = 1.00
+D_loc = 0.10
 D_locs = [-np.inf, data['loc'].mean() - D_loc/2, data['loc'].mean() + D_loc/2, np.inf]
 
 fig, ax = plt.subplots()
@@ -326,6 +326,8 @@ xlo, xhi = ax.get_xlim()
 ylo, yhi = ax.get_ylim()
 
 for GVW_lims in zip([-np.inf, GVW_lim], [GVW_lim, np.inf]):
+    if not GVW_lims[1]:
+        continue
     GVWs = data.loc[(data['gvw'] >= GVW_lims[0]) &  (data['gvw'] <= GVW_lims[1])]
     slcs = [GVWs.loc[(data['loc'] > a) & (data['loc'] <= b)]['gvw'].describe()
             for (a, b) in zip(D_locs[:-1], D_locs[1:])]
@@ -337,9 +339,11 @@ for GVW_lims in zip([-np.inf, GVW_lim], [GVW_lim, np.inf]):
             xmin = xlo
         if xmax == np.inf:
             xmax = xhi
-        print(xmin, xmax)
         plt.hlines(y=mean, xmin=xmin, xmax=xmax, linewidth=0.75, color='r')
-        plt.text((xmin+xmax)/2, mean - 0.25, f"N={N[idx]}: {mean:.1f}t={mean/GVWs['gvw'].mean()*100:.1f}%", va='top', ha='center', color='r')
+        plt.hlines(y=mean + std, xmin=xmin, xmax=xmax, linestyle='--', linewidth=0.25, color='r')
+        plt.hlines(y=mean - std, xmin=xmin, xmax=xmax, linestyle='--', linewidth=0.50, color='r')
+        Delta = mean/GVWs['gvw'].mean() - 1
+        plt.text((xmin+xmax)/2, mean - 0.25, f"{mean:.1f}t = {Delta*100:+.1f}%\nN = {N[idx]}, $\\Delta$ = {Delta/std*100:.2g}%$\\sigma$", va='top', ha='center', color='r')
         
     if ts:
         model = TheilSenRegressor()
@@ -348,8 +352,13 @@ for GVW_lims in zip([-np.inf, GVW_lim], [GVW_lim, np.inf]):
         b = model.intercept_
     else:
         m, b = np.polyfit(GVWs['loc'], GVWs['gvw'], 1)
+        p = np.poly1d([m, b])
+        y_pred = p(GVWs['loc'])
+        ss_res = np.sum((GVWs['gvw'] - y_pred) ** 2)
+        ss_tot = np.sum((GVWs['gvw'] - np.mean(GVWs['gvw'])) ** 2)
+        r2 = 1 - (ss_res / ss_tot)      
     plt.plot([xlo, xhi], [m*x + b for x in [xlo, xhi]], ':m')
-    plt.text((xlo+xhi)/2, m*(xlo+xhi)/2 + b + 0.75, f"slope = {m:.1f}t/m = {m/np.mean(GVWs['gvw'])*100:.0f}%/m", ha='center', va='bottom', color='m')
+    plt.text((xlo+xhi)/2, m*(xlo+xhi)/2 + b + 0.75, f"slope = {m:.1f}t/m = {m/np.mean(GVWs['gvw'])*100:.0f}%/m, R^2 = {r2:.04f}", ha='center', va='bottom', color='m')
 
 for GVW_limm in GVW_lims:
     plt.axhline(GVW_limm, linestyle=':', linewidth=0.5, color='k')
@@ -362,8 +371,13 @@ plt.text((D_locs[1] + D_locs[2])/2, ylo + 1, f"{D_loc:.2f}m", va='bottom', ha='c
 
 plt.plot(data['loc'], data['w1'], '.', markersize=0.25, label='W1')
 m, b = np.polyfit(data['loc'], data['w1'], 1)
+p = np.poly1d([m, b])
+y_pred = p(data['loc'])
+ss_res = np.sum((data['w1'] - y_pred) ** 2)
+ss_tot = np.sum((data['w1'] - np.mean(data['w1'])) ** 2)
+r2 = 1 - (ss_res / ss_tot)      
 plt.plot([xlo, xhi], [m*x + b for x in [xlo, xhi]], ':k')
-plt.text((xlo+xhi)/2, 9, f"slope = {m:.1f}t/m = {m/np.mean(data['w1'])*100:.0f}%/m", ha='center')
+plt.text((xlo+xhi)/2, 9, f"slope = {m:.1f}t/m = {m/np.mean(data['w1'])*100:.0f}%/m, R^2 = {r2:.04f}", ha='center')
 
 plt.xlabel("y/m")
 plt.ylabel("GVW/t, W1/t")
