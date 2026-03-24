@@ -213,8 +213,8 @@ def pil_image_to_qt_pixmap(pil_image):
 class RaisedValidator(QValidator):
     def __init__(self, parent = None, window=None):
         QValidator.__init__(self, parent)
-        self.acceptable = re.compile("(\d)(,\d)*")
-        self.intermediate = re.compile("([\d,])*")
+        self.acceptable = re.compile("(\\d)(,\\d)*")
+        self.intermediate = re.compile("([\\d,])*")
         self.window = window
     
     def validate(self, s, pos):
