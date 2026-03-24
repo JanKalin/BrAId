@@ -945,9 +945,9 @@ class Window(QMainWindow, Ui_MainWindow):
                     beep()
                     return
                 try:
-                    df = event.diag['vehicle_fad'].df()
+                    df, _ = event.diag['vehicle_fad'].df()
                 except KeyError:
-                    df = event.module_trace.last_module('vehicle_fad').diags[0][1].df()
+                    df, _ = event.module_trace.last_module('vehicle_fad').diags[0][1].df()
                 ylim = {}
                 for lane, chs in enumerate([['11admp', '11diff'], ['21admp', '21diff']]):
                     for ch in chs:
@@ -983,7 +983,7 @@ class Window(QMainWindow, Ui_MainWindow):
             elif region == 'photo':
                 filename = pngpath(args.photo_root, self.rv)
             elif region == 'PDF': 
-                filename = os.path.join(SCRIPT_DIR, 'doc', 'lbp.pdf')
+                filename = os.path.join(SCRIPT_DIR, 'doc', 'lbp', 'lbp.pdf')
             else:
                 raise ValueError(f"Invalid region: {region}")
             shutil.copy(filename, tempfile.gettempdir())
