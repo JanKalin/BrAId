@@ -141,6 +141,7 @@ if args.find:
         for idx, photo in enumerate(photos):
             if photo['photo_id'] == args.find:
                 print(batch, idx + 1, photo)
+                print(load_metadata(photo, metadata_filename))
                 raise SystemExit
     raise RuntimeError(f"Photo ID {args.find} not found")
     

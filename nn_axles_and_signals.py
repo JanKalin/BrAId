@@ -8,6 +8,7 @@ import sys
 
 import h5py
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(os.path.dirname(SCRIPT_DIR), 'siwim-pi'))
@@ -20,16 +21,19 @@ from swm.utils import datetime2ts, Progress
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+raise SystemExit("Do not run this script indiscriminately or you will overwrite data!")
+
 #%% Parse args and do simple initialisations
 
 parser = argparse.ArgumentParser(description="Use data from `nn_vehicles.json` to generate data for NN training", fromfile_prefix_chars='@', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--data_dir", help="Data directory", default=os.path.join(SCRIPT_DIR, 'data'))
 parser.add_argument("--src", help="Source file, output `from nn_vehicles.py`, in the data directory", default="nn_vehicles.json")
-parser.add_argument("--dst", help="Destination file", default="nn_axles.json")
+parser.add_argument("--dst", help="Destination file. Use 'NONE' to skip writing", default="nn_axles.json")
 parser.add_argument("--sig", help="Destination signal file. Use 'NONE' to skip writing", default="nn_signals.hdf5")
+parser.add_argument("--all", help="Output all signals, not only ADMP", action='store_true')
 parser.add_argument("--plot", help="Plot data. For testing purposes", action='store_true')
 
-parser.add_argument("--siwim_data_root", help="SiWIM data root", default=r"E:\sites\original")
+parser.add_argument("--siwim_data_root", help="SiWIM data root", default=r"F:\sites\original")
 parser.add_argument("--siwim_site", help="SiWIM site", default="AC_Sentvid_2012_2")
 parser.add_argument("--siwim_original_index", help="SiWIM index for data after reconstruction and before machine and manual changes", default=1)
 parser.add_argument("--siwim_vehicle_fad_index", help="SiWIM index for data with vehicle_fad signals", default=41)
@@ -37,9 +41,12 @@ parser.add_argument("--siwim_vehicle_fad_index", help="SiWIM index for data with
 try:
     __IPYTHON__ # noqa
     if True and getpass.getuser() == 'jank':
-        args = parser.parse_args(r"--sig NONE".split())
+        try:
+            args = parser.parse_args(r"--dst NONE --sig nn_all_signals.hdf5 --all".split())
+        except:
+            raise SystemExit()
     else:
-        raise Exception
+        raise SystemExit()
 except:
     args = parser.parse_args()
 
@@ -66,7 +73,7 @@ with open(os.path.join(args.data_dir, args.src)) as f:
 output_vehicles = []
 
 progress = Progress("Processing {} events... {{}}% ".format(len(input_vehicles)), len(input_vehicles))
-for item in input_vehicles:
+for item in tqdm(input_vehicles):
     progress.step()
     
     # Read singled detected and weighed vehicle from rp01
@@ -107,7 +114,11 @@ for item in input_vehicles:
         diags = event.module_trace.last_module('vehicle_fad').diags[0][1].a[0]
         with h5py.File(os.path.join(args.data_dir, args.sig), 'a') as f:
             grp = f.create_group(item['ts_str'])
-            _as = [event.acqdata.a[6], event.acqdata.a[7]] + event.module_trace.last_module('vehicle_fad').diags[0][1].a
+            if args.all:
+                _as = [event.acqdata.a[idx] for idx in range(16)]
+            else:
+                _as = [event.acqdata.a[6], event.acqdata.a[7]]
+            _as += event.module_trace.last_module('vehicle_fad').diags[0][1].a
             for a in _as:
                 grp.create_dataset(a.short_description, data=a.data - a.offset(), compression="gzip", compression_opts=4, shuffle=True)
                 if args.plot: plt.plot(a.data - a.offset(), label=a.short_description)
@@ -117,5 +128,6 @@ for item in input_vehicles:
             plt.legend()
             plt.show()
     
-with open(os.path.join(args.data_dir, args.dst), 'w') as f:
-    json.dump(output_vehicles, f, indent=2)
+if args.dst != 'NONE':
+    with open(os.path.join(args.data_dir, args.dst), 'w') as f:
+        json.dump(output_vehicles, f, indent=2)

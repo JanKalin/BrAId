@@ -189,6 +189,7 @@ V izhodni datoteki `nn_signals.hdf5`  pa so zbrani signali. Za vsako vozilo je k
 - `11avg1`: Prvo drseče povprečje signala `11admp''` z dolžino povprečenja enako 0.3&nbsp;m.
 - `11avg2`: Drugo drseče povprečje signala `11admp''` z dolžino povprečenja enako 1.1&nbsp;m.
 - Razlika `11diff = 11avg1 - 11avg2`, ki je osnova za algoritem za detekcijo. 
+- 5.12.2026 smo se dogovorili, da se v datoteko dodajo se vsi tehtalni kanali, `w01`…`w12`, hkrati pa so bili dodani se (neuporabljeni) `s211` in `s212 a21`, signala za detekcijo hitrosti in osi na drugem pasu.
 
 ### Generiranje pulzov za končno verzijo vozil
 
@@ -208,7 +209,7 @@ Da bi olajšali strojno učenje, skripta `nn_normalise.py`  prebere datoteki `nn
 - Neodvisna spremenljivka se spremeni iz časa v razdaljo s pomočjo hitrosti vozila:
   - Vse signale v `nn_signals.hdf` se ponovno vzorčijo z $\Delta x =$&nbsp;5&nbsp;cm. Pri hitrostih okoli 25&nbsp;m/s in vzorčenju 512&nbsp;Hz to pomeni približno ohranjanje števila vzorcev. Pretvorbeni faktor se v `.json` zapiše kot `dx/dt`
   - Vrednosti pulzov v `.json` datotekah se pomnožijo tem faktorjem
-- Ponovno vzorčene signale se normira tako, da je maksimum enak 1
+- Ponovno vzorčene signale se normira tako, da je maksimum enak 1. Faktor normiranja se zapiše v `.json` v *dict* `max`, v katerem je ključ ime signala.
 - Podatkom se odreže odvečne dele signala pred in za uporabnim delom signala s sledečim postopkom:
   - Najprej se poišče interval na katerem signal pozitiven:
     1. Določi se interval $[p, q]$, kjer vrednost signala `admp11`, prvič naraste nad 0.2 (t.j., 25% od maksimuma normiranega signala) in zadnjič pade pod 0.25.

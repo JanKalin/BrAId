@@ -16,6 +16,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(os.path.dirname(SCRIPT_DIR), 'siwim-pi'))
 sys.path.append(os.path.join(os.path.dirname(SCRIPT_DIR), '..', 'siwim-pi'))
 
+from swm.utils import ts2datetime
+
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -29,16 +31,20 @@ parser.add_argument("--src-hdf5", help="Source signals file in the data director
 parser.add_argument("--src-json", help="Source file vehicles in the data directory", default="nn_pulses.json")
 parser.add_argument("--dst-hdf5", help="Destination signals file in the data directory. Use NONE to prevent writing", default="nn_normalised_signals.hdf5")
 parser.add_argument("--dst-json", help="Destination vehicles file in the data directory. Use NONE to prevent writing", default="nn_normalised_pulses.json")
+parser.add_argument("--recognized-vehicles-json", help="Needed for option --photo-ids", default="recognized_vehicles.json")
+parser.add_argument("--vehicle-to-event-json", help="Needed for option --photo-ids", default="vehicle2event.json")
 
 parser.add_argument("--dx", help="Resampled data spatial resolution", type=float, default=0.05)
 parser.add_argument("--threshold", help="Threshold for search of the positive region", type=float, default=0.20)
-parser.add_argument("--expand", help="Expand positive region by this many metres to left and right", type=float, nargs=2, default=[8, 8])
+parser.add_argument("--expand", help="Expand positive region by this many metres to left and right", type=float, nargs=2, default=[8, 16])
 
 grp_selection = parser.add_mutually_exclusive_group()
-grp_selection.add_argument("--ets", help="Process single vehicle")
+grp_selection.add_argument("--photo-ids", help="Process one or more vehicles based on photo ID", nargs='+')
+grp_selection.add_argument("--ets", help="Process one or more vehicles based on event timestamp", nargs='+')
 grp_selection.add_argument("--items", help="Process these items. Default is to process all files", type=int, nargs=2)
 
 parser.add_argument("--plot", help="Plot overlayed 11admp signals and first --plot pulses", type=int)
+parser.add_argument("--signal-plot", help="Plots all signals in each loaded file", action='store_true')
 parser.add_argument("--legend", help="Add label to plot (use for small number of items", action='store_true')
 
 parser.add_argument("--admp-only", help="Process just the 11admp signal", action='store_true')
@@ -47,7 +53,8 @@ parser.add_argument("--debug", help="Various debugging", action='store_true');
 try:
     __IPYTHON__ # noqa
     if True and getpass.getuser() == 'jank':
-        args = parser.parse_args(r"--plot 1 --admp --legend --dst-hdf5 NONE --dst-json NONE --items 0 10".split())
+        args = parser.parse_args(r"--legend --src-hdf5 nn_all_signals.hdf5 --dst-hdf5 nn_normalised_all_signals.hdf5 --dst-json nn_normalised_all_pulses.json"
+                                 " --items 0 10 --signal-plot".split())
     else:
         raise Exception
 except:
@@ -62,23 +69,34 @@ class SkipItem(Exception):
     """Just signals a skip"""
     pass
 
-#%% Read the json file
+#%% Read the json file(s)
 
 with open(os.path.join(args.data_dir, args.src_json)) as f:
     items = json.load(f)
     
+events = None
+
+if args.photo_ids:
+    with open(os.path.join(args.data_dir, args.recognized_vehicles_json)) as f:
+        photo2ts = {str(x['photo_id']): x['vehicle_timestamp'] for x in json.load(f)}
+    with open(os.path.join(args.data_dir, args.vehicle_to_event_json)) as f:
+        veh2event = json.load(f)
+    events = [veh2event[str(photo2ts[x])] for x in args.photo_ids]
+
 if args.ets:
-    items = [x for x in items if x['ets_str'] == args.ets]        
+    events = [ts2datetime(x).timestamp() for x in args.ets]
+    
+if events:
+    items = [x for x in items if x['ets'] in events]
     if not items:
         raise ValueError(f"{args.ets} not found in {args.src_json}")
     
-    
 #%% Now process the data
 
-# Perhaps prepare a plot 
+# Perhaps plot
 if args.plot:
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize = (8, 6), sharex=True)
-    
+    summary_fig, (summary_ax1, summary_ax2) = plt.subplots(2, 1, figsize = (8, 6), sharex=True)
+
 # Init file and list of items
 if args.dst_hdf5 != "NONE":
     with h5py.File(os.path.join(args.data_dir, args.dst_hdf5), 'w') as f: pass
@@ -105,8 +123,17 @@ for idx, item in enumerate(tqdm(items[args.items[0]:args.items[1]] if args.items
             # Clear interval
             (p, q) = (None, None)
     
+            # Perhaps plot all signals
+            if args.signal_plot:
+                fig_sig, ax_sig = plt.subplots(1, 1, figsize=(8, 6))
+
+            # Record maxes
+            item['max'] = {}
+    
             # Process all signals
             for jdx, dataset_name in enumerate(['11admp'] + [x for x in dataset_names if x != '11admp']):
+                
+                # Shortcut
                 data = src_grp[dataset_name]
                 if args.debug:
                     data_old = np.array(data)
@@ -121,7 +148,9 @@ for idx, item in enumerate(tqdm(items[args.items[0]:args.items[1]] if args.items
                 
                 # Resample and normalise
                 data_new = np.interp(a_new, a_old, data)
-                data_new /= data_new.max()
+                _max = data_new.max()
+                data_new /= _max
+                item['max'][dataset_name] = _max
     
                 # Determine the useful interval from the first signal, 11admp
                 if not jdx:
@@ -150,24 +179,42 @@ for idx, item in enumerate(tqdm(items[args.items[0]:args.items[1]] if args.items
                     with h5py.File(os.path.join(args.data_dir, args.dst_hdf5), 'a') as g:
                         g[item['ts_str']].create_dataset(dataset_name, data=data_slice, compression="gzip", compression_opts=4, shuffle=True)
                 
-                # And plot the first signal
+                # And perhaps plot the first signal
                 if not jdx and args.plot:
                     data_plot = data_slice
+                if args.signal_plot:
+                    ax_sig.plot(data_slice, label=dataset_name)
                     
                 # Perhaps just this channel
                 if jdx and args.admp_only:
                     break
                 
+            
             # If we don't have the interval, something was wrong
             if not p or not q:
                 continue
                     
             # And prehaps plot the final pulses
             if args.plot:
+                fig, (ax1, ax2) = plt.subplots(2, 1, figsize = (8, 6), sharex=True)
                 ax1.plot(data_plot, label=item['ets_str'])
-                a = np.zeros(len(data_slice), dtype=int)
+                ax1.axhline(y=0, color='k', linestyle=':')
+                a = np.zeros(len(data_plot), dtype=int)
                 a[item['vehicle'][RELEVANT_STAGE]['axle_pulses'][:args.plot]] = 1
                 ax2.plot(a, label=item['ets_str'])
+                ax1.legend()
+                
+                summary_ax1.plot(data_plot, label=item['ets_str'])
+                a = np.zeros(len(data_plot), dtype=int)
+                a[item['vehicle'][RELEVANT_STAGE]['axle_pulses'][:args.plot]] = 1
+                summary_ax2.plot(a, label=item['ets_str'])
+                
+            # And all signals
+            if args.signal_plot:
+                if args.legend:
+                    ax_sig.legend()
+                plt.show()
+                
     except SkipItem:
         skipped.append(item['ets_str'])
         continue
@@ -202,8 +249,8 @@ if new_items:
     # Show plots
     if args.plot:
         if args.legend:
-            ax1.legend()
-            ax2.legend()
+            summary_ax1.legend()
+            summary_ax2.legend()
         plt.tight_layout() 
         plt.show()
 else:
