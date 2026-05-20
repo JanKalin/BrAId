@@ -336,4 +336,8 @@ print("Groups match:",
 
 Število testnih vozil pa je tudi dovolj majhno, da lahko ročno pregledamo rezultate.
 
+### Ekstrakcija iz drugih event-ov
+
+Za validacijo smo uporabili podatke iz drugih lokacij. 
+
 [^1]: Pri pripravi datoteke `grp_and_fixed.hdf5`, poslane 3.12.2024, o kateri smo tudi včeraj govorili, sem pozabil na te zastavice. Bom, ko vzpostavim ML PC doma, še enkrat vse skupaj zgeneriral. Vidim, da sem tudi v `metadata.hdf` po nepotrebnem združil zastavice za ročne spremembe z zastavico `Flag_QA_Fixed`. Bom tudi to popravil, da bosta to ločena podatka.

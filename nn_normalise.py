@@ -21,19 +21,20 @@ from swm.utils import ts2datetime
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-raise SystemExit("Do not run this script indiscriminately or you will overwrite data!")
+# raise SystemExit("Do not run this script indiscriminately or you will overwrite data!")
 
 #%% Parse args and do simple initialisations
 
 parser = argparse.ArgumentParser(description="Normalises and shifs signals", fromfile_prefix_chars='@', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--data_dir", help="Data directory", default=os.path.join(SCRIPT_DIR, 'data'))
-parser.add_argument("--src-hdf5", help="Source signals file in the data directory", default="nn_signals.hdf5")
-parser.add_argument("--src-json", help="Source file vehicles in the data directory", default="nn_pulses.json")
-parser.add_argument("--dst-hdf5", help="Destination signals file in the data directory. Use NONE to prevent writing", default="nn_normalised_signals.hdf5")
-parser.add_argument("--dst-json", help="Destination vehicles file in the data directory. Use NONE to prevent writing", default="nn_normalised_pulses.json")
+parser.add_argument("--src-hdf5", help="Source signals file in the data directory", required=True)
+parser.add_argument("--src-json", help="Source file vehicles in the data directory", required=True)
+parser.add_argument("--dst-hdf5", help="Destination signals file in the data directory. Use NONE to prevent writing", required=True)
+parser.add_argument("--dst-json", help="Destination vehicles file in the data directory. Use NONE to prevent writing", required=True)
 parser.add_argument("--recognized-vehicles-json", help="Needed for option --photo-ids", default="recognized_vehicles.json")
 parser.add_argument("--vehicle-to-event-json", help="Needed for option --photo-ids", default="vehicle2event.json")
 
+parser.add_argument("--admp", help="ADMP signal name", required=True)
 parser.add_argument("--dx", help="Resampled data spatial resolution", type=float, default=0.05)
 parser.add_argument("--threshold", help="Threshold for search of the positive region", type=float, default=0.20)
 parser.add_argument("--expand", help="Expand positive region by this many metres to left and right", type=float, nargs=2, default=[8, 16])
@@ -43,7 +44,7 @@ grp_selection.add_argument("--photo-ids", help="Process one or more vehicles bas
 grp_selection.add_argument("--ets", help="Process one or more vehicles based on event timestamp", nargs='+')
 grp_selection.add_argument("--items", help="Process these items. Default is to process all files", type=int, nargs=2)
 
-parser.add_argument("--plot", help="Plot overlayed 11admp signals and first --plot pulses", type=int)
+parser.add_argument("--plot", help="Plot overlayed --admp signals and first --plot pulses", type=int)
 parser.add_argument("--signal-plot", help="Plots all signals in each loaded file", action='store_true')
 parser.add_argument("--legend", help="Add label to plot (use for small number of items", action='store_true')
 
@@ -53,15 +54,14 @@ parser.add_argument("--debug", help="Various debugging", action='store_true');
 try:
     __IPYTHON__ # noqa
     if True and getpass.getuser() == 'jank':
-        args = parser.parse_args(r"--legend --src-hdf5 nn_all_signals.hdf5 --dst-hdf5 nn_normalised_all_signals.hdf5 --dst-json nn_normalised_all_pulses.json"
-                                 " --items 0 10 --signal-plot".split())
+        args = parser.parse_args(r"--plot 1 --src-hdf5 nn_extracted_signals-Moste_18_MM.hdf5 --src-json nn_extracted_pulses-Moste_18_MM.json "
+                                 " --dst-hdf5 nn_extracted_signals-normalised-Moste_18_MM.hdf5 --dst-json nn_extracted_pulses-normalised-Moste_18_MM.json ".split() + ['--admp', 's212 a21'])
     else:
         raise Exception
 except:
     args = parser.parse_args()
 
 SAMPLING_RATE = 512
-RELEVANT_STAGE = 'final'
 
 #%% Define my exception that causes skipping this item
 
@@ -114,8 +114,8 @@ for idx, item in enumerate(tqdm(items[args.items[0]:args.items[1]] if args.items
         with h5py.File(os.path.join(args.data_dir, args.src_hdf5), 'r') as f:
             src_grp = f[item['ts_str']]
             dataset_names = [name for name, obj in src_grp.items() if isinstance(obj, h5py.Dataset)]
-            if '11admp' not in dataset_names:
-                raise RuntimeError(f"Missing dataset '11admp' in {item['ts_str']}")
+            if args.admp not in dataset_names:
+                raise RuntimeError(f"Missing dataset {args.admp}' in {item['ts_str']}")
             if args.dst_hdf5 != "NONE":
                 with h5py.File(os.path.join(args.data_dir, args.dst_hdf5), 'a') as g:
                     g.create_group(item['ts_str'])
@@ -131,7 +131,7 @@ for idx, item in enumerate(tqdm(items[args.items[0]:args.items[1]] if args.items
             item['max'] = {}
     
             # Process all signals
-            for jdx, dataset_name in enumerate(['11admp'] + [x for x in dataset_names if x != '11admp']):
+            for jdx, dataset_name in enumerate([args.admp] + [x for x in dataset_names if x != args.admp]):
                 
                 # Shortcut
                 data = src_grp[dataset_name]
@@ -152,7 +152,7 @@ for idx, item in enumerate(tqdm(items[args.items[0]:args.items[1]] if args.items
                 data_new /= _max
                 item['max'][dataset_name] = _max
     
-                # Determine the useful interval from the first signal, 11admp
+                # Determine the useful interval from the first signal, args.admp
                 if not jdx:
                     above = np.where(data_new > args.threshold)[0]
                     try:
@@ -165,10 +165,16 @@ for idx, item in enumerate(tqdm(items[args.items[0]:args.items[1]] if args.items
                         raise SkipItem()
     
                     # Adjust the pulses and flag an error if they are too soon
-                    for stage in ['detected', 'weighed', 'final']:
+                    stages = ['detected', 'weighed']
+                    try:
+                        item['vehicle']['final']
+                        stages.append('final')
+                    except:
+                        pass
+                    for stage in stages:
                         item['vehicle'][stage]['axle_pulses'] = [int(x/dx_dt - p) for x in item['vehicle'][stage]['axle_pulses']]
-                    if item['vehicle'][RELEVANT_STAGE]['axle_pulses'][0] < 160 or item['vehicle'][RELEVANT_STAGE]['axle_pulses'][0] > 212:
-                        misplaced.append(f"{item['ets_str']}\t{idx + (args.items[0] if args.items else 0)}\t{item['vehicle'][RELEVANT_STAGE]['axle_pulses'][0]}")
+                    if item['vehicle'][stages[-1]]['axle_pulses'][0] < 160 or item['vehicle'][stages[-1]]['axle_pulses'][0] > 212:
+                        misplaced.append(f"{item['ets_str']}\t{idx + (args.items[0] if args.items else 0)}\t{item['vehicle'][stages[-1]]['axle_pulses'][0]}")
                         raise SkipItem()
                     else:
                         new_items.append(item)
@@ -196,17 +202,17 @@ for idx, item in enumerate(tqdm(items[args.items[0]:args.items[1]] if args.items
                     
             # And prehaps plot the final pulses
             if args.plot:
-                fig, (ax1, ax2) = plt.subplots(2, 1, figsize = (8, 6), sharex=True)
-                ax1.plot(data_plot, label=item['ets_str'])
-                ax1.axhline(y=0, color='k', linestyle=':')
-                a = np.zeros(len(data_plot), dtype=int)
-                a[item['vehicle'][RELEVANT_STAGE]['axle_pulses'][:args.plot]] = 1
-                ax2.plot(a, label=item['ets_str'])
-                ax1.legend()
+                # fig, (ax1, ax2) = plt.subplots(2, 1, figsize = (8, 6), sharex=True)
+                # ax1.plot(data_plot, label=item['ets_str'])
+                # ax1.axhline(y=0, color='k', linestyle=':')
+                # a = np.zeros(len(data_plot), dtype=int)
+                # a[item['vehicle'][stages[-1]]['axle_pulses'][:args.plot]] = 1
+                # ax2.plot(a, label=item['ets_str'])
+                # ax1.legend()
                 
                 summary_ax1.plot(data_plot, label=item['ets_str'])
                 a = np.zeros(len(data_plot), dtype=int)
-                a[item['vehicle'][RELEVANT_STAGE]['axle_pulses'][:args.plot]] = 1
+                a[item['vehicle'][stages[-1]]['axle_pulses'][:args.plot]] = 1
                 summary_ax2.plot(a, label=item['ets_str'])
                 
             # And all signals
@@ -243,7 +249,7 @@ if skipped:
         
 # Calculate stats for the first pulse
 if new_items:
-    firsts = [x['vehicle'][RELEVANT_STAGE]['axle_pulses'][0] for x in new_items]
+    firsts = [x['vehicle'][stages[-1]]['axle_pulses'][0] for x in new_items]
     print(f"First pulse positions are {np.mean(firsts)} \u00B1 {np.std(firsts):.1f}, min: {np.min(firsts)}, max: {np.max(firsts)}")
 
     # Show plots
